@@ -1,0 +1,90 @@
+[
+  {
+    "id": 1,
+    "message": "Avoid Grapefruit with Statins",
+    "riskLevel": "High",
+    "description": "Grapefruit and grapefruit juice can increase the concentration of statin medications in your blood, potentially causing serious side effects.",
+    "medications": ["Atorvastatin", "Simvastatin", "Lovastatin"],
+    "foods": ["Grapefruit", "Grapefruit Juice"],
+    "timestamp": "2024-01-15T10:30:00Z",
+    "dismissed": false,
+    "category": "Drug-Food Interaction"
+  },
+  {
+    "id": 2,
+    "message": "Limit Vitamin K Foods with Warfarin",
+    "riskLevel": "High",
+    "description": "Foods high in vitamin K can reduce the effectiveness of warfarin. Maintain consistent intake of these foods.",
+    "medications": ["Warfarin"],
+    "foods": ["Spinach", "Kale", "Broccoli", "Green Tea"],
+    "timestamp": "2024-01-14T14:20:00Z",
+    "dismissed": false,
+    "category": "Drug-Food Interaction"
+  },
+  {
+    "id": 3,
+    "message": "Avoid Alcohol with Metformin",
+    "riskLevel": "Medium",
+    "description": "Alcohol consumption while taking metformin can increase the risk of lactic acidosis.",
+    "medications": ["Metformin"],
+    "foods": ["Alcoholic Beverages"],
+    "timestamp": "2024-01-13T09:15:00Z",
+    "dismissed": false,
+    "category": "Drug-Alcohol Interaction"
+  },
+  {
+    "id": 4,
+    "message": "Take Iron Supplements Away from Calcium",
+    "riskLevel": "Medium",
+    "description": "Calcium can interfere with iron absorption. Take iron supplements at least 2 hours before or after calcium-rich foods.",
+    "medications": ["Iron Supplements"],
+    "foods": ["Dairy Products", "Calcium-Fortified Foods"],
+    "timestamp": "2024-01-12T16:45:00Z",
+    "dismissed": false,
+    "category": "Supplement Interaction"
+  },
+  {
+    "id": 5,
+    "message": "Monitor Potassium with ACE Inhibitors",
+    "riskLevel": "Medium",
+    "description": "High potassium foods can cause dangerous potassium levels when taking ACE inhibitors.",
+    "medications": ["Lisinopril", "Enalapril", "Captopril"],
+    "foods": ["Bananas", "Oranges", "Potatoes", "Tomatoes"],
+    "timestamp": "2024-01-11T11:30:00Z",
+    "dismissed": false,
+    "category": "Drug-Food Interaction"
+  },
+  {
+    "id": 6,
+    "message": "Avoid Licorice with Digoxin",
+    "riskLevel": "High",
+    "description": "Licorice can increase the risk of digoxin toxicity and irregular heart rhythms.",
+    "medications": ["Digoxin"],
+    "foods": ["Licorice", "Licorice Root Tea"],
+    "timestamp": "2024-01-10T13:20:00Z",
+    "dismissed": true,
+    "category": "Drug-Food Interaction"
+  },
+  {
+    "id": 7,
+    "message": "Take Thyroid Medication on Empty Stomach",
+    "riskLevel": "Low",
+    "description": "Food can interfere with thyroid medication absorption. Take on empty stomach and wait 1 hour before eating.",
+    "medications": ["Levothyroxine", "Synthroid"],
+    "foods": ["All Foods"],
+    "timestamp": "2024-01-09T08:00:00Z",
+    "dismissed": false,
+    "category": "Medication Timing"
+  },
+  {
+    "id": 8,
+    "message": "Limit Caffeine with Stimulant Medications",
+    "riskLevel": "Medium",
+    "description": "Excessive caffeine can increase side effects of stimulant medications like anxiety and heart palpitations.",
+    "medications": ["Adderall", "Ritalin", "Concerta"],
+    "foods": ["Coffee", "Energy Drinks", "Dark Chocolate"],
+    "timestamp": "2024-01-08T15:10:00Z",
+    "dismissed": false,
+    "category": "Drug-Food Interaction"
+  }
+]

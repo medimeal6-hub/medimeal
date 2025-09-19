@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "fileName": "prescription_001.pdf",
+    "uploadDate": "2024-01-15T10:30:00Z",
+    "status": "Processed",
+    "medications": [
+      {
+        "name": "Atorvastatin",
+        "dosage": "20mg",
+        "frequency": "Once daily",
+        "instructions": "Take with food",
+        "conflicts": ["Grapefruit", "Grapefruit Juice"]
+      },
+      {
+        "name": "Metformin",
+        "dosage": "500mg",
+        "frequency": "Twice daily",
+        "instructions": "Take with meals",
+        "conflicts": ["Alcohol"]
+      },
+      {
+        "name": "Lisinopril",
+        "dosage": "10mg",
+        "frequency": "Once daily",
+        "instructions": "Take with or without food",
+        "conflicts": ["High Potassium Foods"]
+      }
+    ],
+    "flaggedFoods": [
+      {
+        "food": "Grapefruit",
+        "reason": "Can increase statin concentration",
+        "severity": "High"
+      },
+      {
+        "food": "Alcohol",
+        "reason": "Risk of lactic acidosis with metformin",
+        "severity": "Medium"
+      },
+      {
+        "food": "Bananas",
+        "reason": "High potassium can be dangerous with ACE inhibitors",
+        "severity": "Medium"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "fileName": "prescription_002.jpg",
+    "uploadDate": "2024-01-10T14:20:00Z",
+    "status": "Processed",
+    "medications": [
+      {
+        "name": "Warfarin",
+        "dosage": "5mg",
+        "frequency": "Once daily",
+        "instructions": "Take at the same time each day",
+        "conflicts": ["Vitamin K Foods"]
+      },
+      {
+        "name": "Levothyroxine",
+        "dosage": "75mcg",
+        "frequency": "Once daily",
+        "instructions": "Take on empty stomach",
+        "conflicts": ["All Foods"]
+      }
+    ],
+    "flaggedFoods": [
+      {
+        "food": "Spinach",
+        "reason": "High vitamin K content affects warfarin",
+        "severity": "High"
+      },
+      {
+        "food": "Green Tea",
+        "reason": "Contains vitamin K",
+        "severity": "Medium"
+      }
+    ]
+  }
+]
