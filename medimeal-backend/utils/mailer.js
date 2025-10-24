@@ -1,0 +1,209 @@
+const nodemailer = require('nodemailer')
+
+let transporter
+
+function getTransporter() {
+  if (transporter) return transporter
+  const { EMAIL_HOST, EMAIL_PORT, EMAIL_SECURE, EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env
+  if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS || !EMAIL_FROM) {
+    console.warn('Email disabled: missing email envs (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM)')
+    return null
+  }
+  transporter = nodemailer.createTransport({
+    host: EMAIL_HOST,
+    port: Number(EMAIL_PORT),
+    secure: String(EMAIL_SECURE || 'false') === 'true',
+    auth: { user: EMAIL_USER, pass: EMAIL_PASS }
+  })
+  return transporter
+}
+
+async function sendMail({ to, subject, html }) {
+  const tx = getTransporter()
+  if (!tx) return { ok: false, skipped: true }
+  const from = process.env.EMAIL_FROM
+  await tx.sendMail({ from, to, subject, html })
+  return { ok: true }
+}
+
+async function sendPasswordResetEmail(email, firstName, resetUrl) {
+  const subject = 'Password Reset Request - MediMeal'
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset - MediMeal</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Password Reset Request</h1>
+          <p>MediMeal - Personalized Health Nutrition</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${firstName}!</h2>
+          <p>We received a request to reset your password for your MediMeal account.</p>
+          <p>Click the button below to reset your password:</p>
+          <a href="${resetUrl}" class="button">Reset My Password</a>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px;">${resetUrl}</p>
+          <div class="warning">
+            <strong>⚠️ Important:</strong>
+            <ul>
+              <li>This link will expire in 1 hour</li>
+              <li>If you didn't request this reset, please ignore this email</li>
+              <li>Your password will remain unchanged until you create a new one</li>
+            </ul>
+          </div>
+          <p>If you're having trouble clicking the button, copy and paste the URL above into your web browser.</p>
+        </div>
+        <div class="footer">
+          <p>This email was sent from MediMeal. If you have any questions, please contact our support team.</p>
+          <p>© 2024 MediMeal. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+  
+  return await sendMail({ to: email, subject, html })
+}
+
+async function sendWelcomeEmail(email, firstName) {
+  const subject = 'Welcome to MediMeal - Your Health Journey Starts Here!'
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to MediMeal</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .tip { background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🌿 Welcome to MediMeal!</h1>
+          <p>Your Personalized Health & Nutrition Companion</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${firstName}!</h2>
+          <p>Welcome to MediMeal! We're excited to have you join our community focused on improving health through personalized nutrition.</p>
+          
+          <div class="tip">
+            <strong>💡 Getting Started Tips:</strong>
+            <ul>
+              <li>Complete your health profile to get personalized recommendations</li>
+              <li>Upload your prescriptions for medication-based meal suggestions</li>
+              <li>Log your meals to track your nutrition journey</li>
+              <li>Set health goals and track your progress</li>
+            </ul>
+          </div>
+          
+          <p>MediMeal helps you make informed food choices that work with your medications and health conditions, ensuring you get the most out of your nutrition plan.</p>
+          
+          <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="button">Get Started</a>
+          
+          <p>If you have any questions or need assistance, our support team is here to help at any time.</p>
+        </div>
+        <div class="footer">
+          <p>Thank you for choosing MediMeal!</p>
+          <p>© 2024 MediMeal. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+  
+  return await sendMail({ to: email, subject, html })
+}
+
+async function sendLoginNotificationEmail(email, firstName, loginTime, ipAddress) {
+  const subject = 'New Login to Your MediMeal Account'
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Login Notification - MediMeal</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2196F3 0%, #0D47A1 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .info-box { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔒 New Login Detected</h1>
+          <p>MediMeal - Personalized Health Nutrition</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${firstName}!</h2>
+          <p>We noticed a new login to your MediMeal account.</p>
+          
+          <div class="info-box">
+            <strong>Login Details:</strong>
+            <ul>
+              <li><strong>Time:</strong> ${loginTime}</li>
+              <li><strong>IP Address:</strong> ${ipAddress || 'Unknown'}</li>
+              <li><strong>Device:</strong> ${getDeviceType()}</li>
+            </ul>
+          </div>
+          
+          <p>If this was you, you can safely ignore this email. However, if you don't recognize this login, please take the following steps immediately:</p>
+          
+          <div class="warning">
+            <strong>⚠️ Security Actions:</strong>
+            <ul>
+              <li>Change your password immediately</li>
+              <li>Enable two-factor authentication if available</li>
+              <li>Contact our support team if you need assistance</li>
+            </ul>
+          </div>
+          
+          <p>For your security, we recommend using a strong, unique password and enabling additional security features.</p>
+        </div>
+        <div class="footer">
+          <p>This is an automated security notification from MediMeal.</p>
+          <p>© 2024 MediMeal. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+  
+  return await sendMail({ to: email, subject, html })
+}
+
+// Helper function to determine device type (simplified)
+function getDeviceType() {
+  // In a real implementation, this would be determined from the request headers
+  return 'Computer or Mobile Device'
+}
+
+module.exports = { sendMail, sendPasswordResetEmail, sendWelcomeEmail, sendLoginNotificationEmail }

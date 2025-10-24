@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-section h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-step {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .test-step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .credentials {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #b3d9ff;
+        }
+        .credentials h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .credential-item {
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .url-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .url-link:hover {
+            text-decoration: underline;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏥 Doctor Dashboard System - Testing Guide</h1>
+    
+    <div class="test-container">
+        <h2>📋 Overview</h2>
+        <p>This guide will help you test the complete doctor dashboard system. The system includes:</p>
+        <ul>
+            <li>✅ Admin dashboard for managing doctors and assigning patients</li>
+            <li>✅ Doctor dashboard with patient management and scheduling</li>
+            <li>✅ Patient assignment system with ward numbers and priorities</li>
+            <li>✅ Schedule management with time slots and activities</li>
+            <li>✅ Role-based authentication and authorization</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>🚀 Quick Start</h2>
+        
+        <div class="test-step">
+            <h3>Step 1: Start the Backend Server</h3>
+            <div class="code-block">
+cd medi/medimeal-backend<br>
+npm install<br>
+npm start
+            </div>
+            <p>Server should start on <strong>http://localhost:5000</strong></p>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 2: Start the Frontend Server</h3>
+            <div class="code-block">
+cd medi/medimeal-frontend<br>
+npm install<br>
+npm start
+            </div>
+            <p>Frontend should start on <strong>http://localhost:3000</strong></p>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 3: Seed Test Data (Optional)</h3>
+            <div class="code-block">
+cd medi/medimeal-backend<br>
+node scripts/seed-test-data.js
+            </div>
+            <p>This creates test users, patients, and assignments for testing.</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔑 Test Credentials</h2>
+        <div class="credentials">
+            <h3>Admin User</h3>
+            <div class="credential-item">Email: admin@test.com</div>
+            <div class="credential-item">Password: Admin123!</div>
+            <div class="credential-item">Role: admin</div>
+        </div>
+
+        <div class="credentials">
+            <h3>Doctor Users</h3>
+            <div class="credential-item">Email: doctor@test.com</div>
+            <div class="credential-item">Password: Doctor123!</div>
+            <div class="credential-item">Role: doctor (Cardiology)</div>
+            <br>
+            <div class="credential-item">Email: doctor2@test.com</div>
+            <div class="credential-item">Password: Doctor123!</div>
+            <div class="credential-item">Role: doctor (Neurology)</div>
+        </div>
+
+        <div class="credentials">
+            <h3>Patient Users</h3>
+            <div class="credential-item">Email: patient@test.com</div>
+            <div class="credential-item">Password: Patient123!</div>
+            <div class="credential-item">Role: user</div>
+            <br>
+            <div class="credential-item">Email: patient2@test.com</div>
+            <div class="credential-item">Password: Patient123!</div>
+            <div class="credential-item">Role: user</div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🧪 Testing Scenarios</h2>
+
+        <div class="test-section">
+            <h3>Scenario 1: Admin Creates Doctor Account</h3>
+            <div class="test-step">
+                <h4>1.1 Login as Admin</h4>
+                <p>Go to <a href="http://localhost:3000/login" class="url-link">http://localhost:3000/login</a></p>
+                <p>Login with: admin@test.com / Admin123!</p>
+                <p>Should redirect to admin dashboard</p>
+            </div>
+            
+            <div class="test-step">
+                <h4>1.2 Create New Doctor</h4>
+                <p>Click "Add Doctor" button</p>
+                <p>Fill in doctor details:</p>
+                <ul>
+                    <li>Name: Dr. John Smith</li>
+                    <li>Email: dr.smith@test.com</li>
+                    <li>Password: Doctor123!</li>
+                    <li>Specialization: General Medicine</li>
+                    <li>License Number: MD999999</li>
+                </ul>
+                <p>Submit the form</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Scenario 2: Admin Assigns Patient to Doctor</h3>
+            <div class="test-step">
+                <h4>2.1 Assign Patient</h4>
+                <p>Click "Assign Patient" button</p>
+                <p>Select a patient and doctor</p>
+                <p>Enter ward number: #999999</p>
+                <p>Set priority: High</p>
+                <p>Add diagnosis and treatment plan</p>
+                <p>Submit assignment</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Scenario 3: Doctor Login and Dashboard</h3>
+            <div class="test-step">
+                <h4>3.1 Login as Doctor</h4>
+                <p>Go to <a href="http://localhost:3000/login" class="url-link">http://localhost:3000/login</a></p>
+                <p>Login with: doctor@test.com / Doctor123!</p>
+                <p>Should redirect to doctor dashboard</p>
+            </div>
+            
+            <div class="test-step">
+                <h4>3.2 Verify Dashboard Elements</h4>
+                <p>Check that dashboard shows:</p>
+                <ul>
+                    <li>✅ Left sidebar with Mediczen™ logo</li>
+                    <li>✅ Navigation menu (Dashboard, Schedules, Patients, etc.)</li>
+                    <li>✅ Header with greeting and patient count</li>
+                    <li>✅ Stats cards (Beds: 86, Doctors: 126, Ambulances: 32)</li>
+                    <li>✅ Patient list with ward numbers and priorities</li>
+                    <li>✅ Calendar with June 2023</li>
+                    <li>✅ Schedule section with time slots</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Scenario 4: Doctor Patient Management</h3>
+            <div class="test-step">
+                <h4>4.1 View Assigned Patients</h4>
+                <p>In doctor dashboard, check patient list</p>
+                <p>Verify patient details (name, age, ward number, priority)</p>
+                <p>Check priority colors (red=high, blue=medium, green=low)</p>
+            </div>
+            
+            <div class="test-step">
+                <h4>4.2 Update Patient Information</h4>
+                <p>Click on a patient to view details</p>
+                <p>Update diagnosis or treatment plan</p>
+                <p>Save changes</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Scenario 5: Schedule Management</h3>
+            <div class="test-step">
+                <h4>5.1 View Schedule</h4>
+                <p>Check calendar section</p>
+                <p>Verify time slots and activities</p>
+                <p>Check activity colors (blue=surgery, green=checkup, red=lunch)</p>
+            </div>
+            
+            <div class="test-step">
+                <h4>5.2 Update Schedule Status</h4>
+                <p>Mark activities as completed</p>
+                <p>Add notes to time slots</p>
+                <p>Verify updates are saved</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔧 API Testing</h2>
+        
+        <div class="test-step">
+            <h3>Run Automated Tests</h3>
+            <div class="code-block">
+cd medi/medimeal-backend<br>
+node scripts/test-doctor-system.js
+            </div>
+            <p>This will run comprehensive API tests covering all endpoints.</p>
+        </div>
+
+        <div class="test-step">
+            <h3>Manual API Testing</h3>
+            <p>Use Postman or curl to test endpoints:</p>
+            <div class="code-block">
+# Test doctor dashboard
+curl -H "Authorization: Bearer YOUR_DOCTOR_TOKEN" \
+     http://localhost:5000/api/doctor/dashboard
+
+# Test patient assignments
+curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+     http://localhost:5000/api/admin/patient-assignments
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🐛 Troubleshooting</h2>
+        
+        <div class="warning">
+            <h3>Common Issues</h3>
+            <ul>
+                <li><strong>Database Connection:</strong> Ensure MongoDB is running</li>
+                <li><strong>Port Conflicts:</strong> Check if ports 3000 and 5000 are available</li>
+                <li><strong>Authentication:</strong> Verify JWT_SECRET is set in .env</li>
+                <li><strong>CORS Issues:</strong> Check CORS configuration in server.js</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Check Server Logs</h3>
+            <p>Monitor backend server logs for errors:</p>
+            <div class="code-block">
+# Backend logs
+cd medi/medimeal-backend
+npm start
+
+# Frontend logs
+cd medi/medimeal-frontend
+npm start
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>✅ Success Criteria</h2>
+        <p>The system is working correctly if:</p>
+        <ul>
+            <li>✅ Admin can create doctor accounts</li>
+            <li>✅ Admin can assign patients to doctors</li>
+            <li>✅ Doctors can log in and see their dashboard</li>
+            <li>✅ Dashboard displays all required elements from the image</li>
+            <li>✅ Patient list shows assigned patients with correct details</li>
+            <li>✅ Calendar and schedule sections are functional</li>
+            <li>✅ All API endpoints return correct data</li>
+            <li>✅ Role-based access control works properly</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>📞 Support</h2>
+        <p>If you encounter any issues:</p>
+        <ul>
+            <li>Check the browser console for JavaScript errors</li>
+            <li>Check the backend server logs for API errors</li>
+            <li>Verify all environment variables are set correctly</li>
+            <li>Ensure all dependencies are installed</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="http://localhost:3000" class="button success">🚀 Open Application</a>
+        <a href="http://localhost:5000/api/health" class="button">🔍 Check API Health</a>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
