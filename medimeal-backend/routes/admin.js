@@ -626,6 +626,137 @@ router.get('/myth-busters', async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:id - get specific user details
+router.get('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      data: { 
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        password: user.password, // Include password for admin viewing
+        role: user.role,
+        specialization: user.specialization,
+        isActive: user.isActive,
+        phone: user.doctorInfo?.phoneNumber || user.phone,
+        doctorInfo: user.doctorInfo,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      } 
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch user details',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// PUT /api/admin/users/:id - update user information
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { 
+      fullName, 
+      firstName, 
+      lastName, 
+      email, 
+      password, 
+      specialization, 
+      phone, 
+      isActive,
+      role 
+    } = req.body;
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Update basic fields
+    if (fullName !== undefined) {
+      const parts = fullName.trim().split(/\s+/);
+      user.firstName = parts[0] || user.firstName;
+      user.lastName = parts.slice(1).join(' ') || user.lastName;
+    }
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (email !== undefined) user.email = email;
+    if (password !== undefined && password.trim()) {
+      user.password = password; // This will be hashed by the model's pre-save middleware
+    }
+    if (specialization !== undefined) user.specialization = specialization;
+    if (isActive !== undefined) user.isActive = isActive;
+    if (role !== undefined) user.role = role;
+
+    // Update doctor-specific fields
+    if (user.role === 'doctor' && phone !== undefined) {
+      if (!user.doctorInfo) user.doctorInfo = {};
+      user.doctorInfo.phoneNumber = phone;
+    }
+
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'User updated successfully', 
+      data: { 
+        user: user.getProfile ? user.getProfile() : {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          specialization: user.specialization,
+          isActive: user.isActive,
+          phone: user.doctorInfo?.phoneNumber || user.phone
+        }
+      } 
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Validation failed', 
+        errors 
+      });
+    }
+
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User with this email already exists' 
+      });
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // PATCH /api/admin/users/:id/role - update a user role
 router.patch('/users/:id/role', async (req, res) => {
   try {

@@ -70,7 +70,8 @@ import {
   DollarSign,
   Briefcase,
   CheckCircle2,
-  EyeOff
+  EyeOff,
+  Copy
 } from 'lucide-react'
 
 const AdminDashboard = () => {
@@ -108,6 +109,13 @@ const AdminDashboard = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [generatedCredentials, setGeneratedCredentials] = useState(null)
+  const [copySuccess, setCopySuccess] = useState('')
+  const [isViewDoctorOpen, setIsViewDoctorOpen] = useState(false)
+  const [isEditDoctorOpen, setIsEditDoctorOpen] = useState(false)
+  const [selectedDoctor, setSelectedDoctor] = useState(null)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
 
   // Ensure axios defaults are set with the authorization header
   useEffect(() => {
@@ -807,14 +815,24 @@ const AdminDashboard = () => {
         emergencyPhone: doctorForm.emergencyPhone
       }
       
-      await axios.post('/api/admin/doctors', submitData)
+      const response = await axios.post('/api/admin/doctors', submitData)
+      
+      // Store credentials for display
+      setGeneratedCredentials({
+        email: doctorForm.email,
+        password: doctorForm.password,
+        doctorName: `${doctorForm.firstName} ${doctorForm.lastName}`,
+        specialization: doctorForm.specialization,
+        doctorId: response.data.data.user._id
+      })
       
       // Reset form and close modal
       resetDoctorForm()
       setIsAddDoctorOpen(false)
       fetchUsers()
       
-      // Show success message
+      // Show credentials modal
+      setShowCredentialsModal(true)
       setError('') // Clear any previous errors
       
     } catch (e) {
@@ -865,6 +883,44 @@ const AdminDashboard = () => {
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1))
+  }
+
+  // Copy to clipboard with success feedback
+  const copyToClipboard = async (text, type) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopySuccess(`${type} copied!`)
+      setTimeout(() => setCopySuccess(''), 2000)
+    } catch (err) {
+      console.error('Failed to copy: ', err)
+      setCopySuccess('Copy failed')
+      setTimeout(() => setCopySuccess(''), 2000)
+    }
+  }
+
+  // Generate secure password for doctor
+  const generatePassword = () => {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+    const numbers = '0123456789'
+    const symbols = '!@#$%^&*'
+    
+    let password = ''
+    
+    // Ensure at least one character from each category
+    password += uppercase[Math.floor(Math.random() * uppercase.length)]
+    password += lowercase[Math.floor(Math.random() * lowercase.length)]
+    password += numbers[Math.floor(Math.random() * numbers.length)]
+    password += symbols[Math.floor(Math.random() * symbols.length)]
+    
+    // Fill the rest randomly
+    const allChars = uppercase + lowercase + numbers + symbols
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)]
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('')
   }
 
   const resetDoctorForm = () => {
@@ -1086,7 +1142,7 @@ const AdminDashboard = () => {
             <button 
               onClick={() => setActiveSection('mythbuster')}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'mythbuster' ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500' : 'text-gray-600 hover:bg-gray-50'
+                activeSection === 'mythbuster' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               <Zap className="w-5 h-5" />
@@ -1096,7 +1152,7 @@ const AdminDashboard = () => {
             <button 
               onClick={() => setActiveSection('reports')}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'reports' ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500' : 'text-gray-600 hover:bg-gray-50'
+                activeSection === 'reports' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               <PieChart className="w-5 h-5" />
@@ -1106,7 +1162,7 @@ const AdminDashboard = () => {
             <button 
               onClick={() => setActiveSection('settings')}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'settings' ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500' : 'text-gray-600 hover:bg-gray-50'
+                activeSection === 'settings' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               <Settings className="w-5 h-5" />
@@ -1205,7 +1261,7 @@ const AdminDashboard = () => {
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">12</span>
               </button>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
                     {user?.fullName?.charAt(0) || 'A'}
                   </span>
@@ -1232,82 +1288,82 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-36 group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                      <Users className="w-7 h-7 text-blue-600" />
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-6 h-6 text-gray-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-800 mb-1">{dashboardStats.totalUsers || stats.total}</p>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">Total Users</p>
+                    <p className="text-2xl font-semibold text-gray-900 mb-1">{dashboardStats.totalUsers || stats.total}</p>
+                    <p className="text-sm text-gray-500 mb-2">Total Users</p>
                     <div className="flex items-center space-x-1">
                       <TrendingUp className="w-3 h-3 text-green-600" />
-                      <p className="text-xs text-green-600 font-medium">+12% this month</p>
+                      <p className="text-xs text-green-600">+12% this month</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-36 group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                      <FileText className="w-7 h-7 text-purple-600" />
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-gray-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-800 mb-1">{dashboardStats.prescriptions || prescriptions.length}</p>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">Prescriptions</p>
+                    <p className="text-2xl font-semibold text-gray-900 mb-1">{dashboardStats.prescriptions || prescriptions.length}</p>
+                    <p className="text-sm text-gray-500 mb-2">Prescriptions</p>
                     <div className="flex items-center space-x-1">
                       <TrendingUp className="w-3 h-3 text-green-600" />
-                      <p className="text-xs text-green-600 font-medium">+8% this week</p>
+                      <p className="text-xs text-green-600">+8% this week</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-36 group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                      <AlertTriangle className="w-7 h-7 text-red-600" />
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-gray-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-red-600 mb-1">{dashboardStats.conflicts || conflicts.length}</p>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">Conflicts</p>
+                    <p className="text-2xl font-semibold text-red-600 mb-1">{dashboardStats.conflicts || conflicts.length}</p>
+                    <p className="text-sm text-gray-500 mb-2">Conflicts</p>
                     <div className="flex items-center space-x-1">
                       <TrendingDown className="w-3 h-3 text-red-600" />
-                      <p className="text-xs text-red-600 font-medium">-5% this week</p>
+                      <p className="text-xs text-red-600">-5% this week</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-36 group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                      <Apple className="w-7 h-7 text-green-600" />
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Apple className="w-6 h-6 text-gray-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-800 mb-1">{dashboardStats.meals || meals.length}</p>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">Meals Added</p>
+                    <p className="text-2xl font-semibold text-gray-900 mb-1">{dashboardStats.meals || meals.length}</p>
+                    <p className="text-sm text-gray-500 mb-2">Meals Added</p>
                     <div className="flex items-center space-x-1">
                       <TrendingUp className="w-3 h-3 text-green-600" />
-                      <p className="text-xs text-green-600 font-medium">+15% this week</p>
+                      <p className="text-xs text-green-600">+15% this week</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-36 group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                      <Shield className="w-7 h-7 text-orange-600" />
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-gray-600" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-800 mb-1">{dashboardStats.activeDoctors || stats.doctors}</p>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">Active Doctors</p>
+                    <p className="text-2xl font-semibold text-gray-900 mb-1">{dashboardStats.activeDoctors || stats.doctors}</p>
+                    <p className="text-sm text-gray-500 mb-2">Active Doctors</p>
                     <div className="flex items-center space-x-1">
                       <TrendingUp className="w-3 h-3 text-green-600" />
-                      <p className="text-xs text-green-600 font-medium">+3 this month</p>
+                      <p className="text-xs text-green-600">+3 this month</p>
                     </div>
                   </div>
                 </div>
@@ -1316,18 +1372,18 @@ const AdminDashboard = () => {
               {/* Analytics Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Diet Compliance Chart */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-[400px] group">
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                        <BarChart3 className="w-6 h-6 text-green-600" />
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="w-6 h-6 text-gray-600" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800">Diet Compliance</h3>
-                        <p className="text-xs text-gray-500">Weekly performance metrics</p>
+                        <h3 className="text-lg font-semibold text-gray-900">Diet Compliance</h3>
+                        <p className="text-sm text-gray-500">Weekly performance metrics</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full">
+                    <div className="flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-lg">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-green-700 font-medium">85% Average</span>
                     </div>
@@ -1336,7 +1392,7 @@ const AdminDashboard = () => {
                     {[65, 72, 78, 82, 85, 88, 85].map((height, index) => (
                       <div key={index} className="flex flex-col items-center">
                         <div 
-                          className="w-8 bg-gradient-to-t from-green-500 to-green-400 rounded-t hover:from-green-600 hover:to-green-500 transition-colors cursor-pointer"
+                          className="w-8 bg-blue-500 rounded-t hover:bg-blue-600 transition-colors cursor-pointer"
                           style={{ height: `${height}%` }}
                           title={`${height}% compliance`}
                         ></div>
@@ -1349,18 +1405,18 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Conflict Trends */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 h-[400px] group">
+                <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-gray-600" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800">Conflict Trends</h3>
-                        <p className="text-xs text-gray-500">Drug interaction monitoring</p>
+                        <h3 className="text-lg font-semibold text-gray-900">Conflict Trends</h3>
+                        <p className="text-sm text-gray-500">Drug interaction monitoring</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 bg-red-50 px-3 py-1 rounded-full">
+                    <div className="flex items-center space-x-2 bg-red-50 px-3 py-1 rounded-lg">
                       <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                       <span className="text-sm text-red-700 font-medium">Weekly Trend</span>
                     </div>
@@ -1369,7 +1425,7 @@ const AdminDashboard = () => {
                     {[12, 8, 15, 10, 7, 9, 11].map((height, index) => (
                       <div key={index} className="flex flex-col items-center">
                         <div 
-                          className="w-8 bg-gradient-to-t from-red-500 to-red-400 rounded-t hover:from-red-600 hover:to-red-500 transition-colors cursor-pointer"
+                          className="w-8 bg-red-500 rounded-t hover:bg-red-600 transition-colors cursor-pointer"
                           style={{ height: `${height * 4}%` }}
                           title={`${height} conflicts detected`}
                         ></div>
@@ -1922,48 +1978,99 @@ const AdminDashboard = () => {
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-800">Doctors & Dieticians</h2>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <button 
+                      onClick={() => setIsAddDoctorOpen(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
                       <Plus className="w-4 h-4" />
-                      <span>Add Professional</span>
+                      <span>Add Doctor</span>
                     </button>
                   </div>
                 </div>
                 <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {doctors.map((doctor) => (
-                      <div key={doctor.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                        <div className="flex items-center space-x-4 mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-medium text-lg">
-                              {doctor.name.split(' ').map(n => n[0]).join('')}
-                            </span>
+                  {users.filter(user => user.role === 'doctor').length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {users.filter(user => user.role === 'doctor').map((doctor) => (
+                        <div key={doctor._id} className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                          <div className="flex items-center space-x-4 mb-4">
+                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                              <span className="text-white font-medium text-lg">
+                                {doctor.fullName ? doctor.fullName.split(' ').map(n => n[0]).join('') : 'DR'}
+                              </span>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{doctor.fullName || 'Dr. Unknown'}</h3>
+                              <p className="text-sm text-gray-600">{doctor.specialization || 'General Medicine'}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-800">{doctor.name}</h3>
-                            <p className="text-sm text-gray-600">{doctor.specialization}</p>
+                          <div className="space-y-2 mb-4">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Email:</span>
+                              <span className="font-medium text-xs">{doctor.email}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Status:</span>
+                              <span className={`font-medium ${doctor.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                                {doctor.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Role:</span>
+                              <span className="font-medium capitalize">{doctor.role}</span>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => {
+                                setSelectedDoctor(doctor)
+                                setIsViewDoctorOpen(true)
+                              }}
+                              className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                            >
+                              View Details
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  // Fetch full doctor details including password
+                                  const response = await axios.get(`/api/admin/users/${doctor._id}`)
+                                  if (response.data.success) {
+                                    setSelectedDoctor(response.data.data)
+                                    setIsEditDoctorOpen(true)
+                                    setShowCurrentPassword(false)
+                                  }
+                                } catch (error) {
+                                  console.error('Error fetching doctor details:', error)
+                                  // Fallback to basic doctor data
+                                  setSelectedDoctor(doctor)
+                                  setIsEditDoctorOpen(true)
+                                  setShowCurrentPassword(false)
+                                }
+                              }}
+                              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                            >
+                              Edit
+                            </button>
                           </div>
                         </div>
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Patients:</span>
-                            <span className="font-medium">{doctor.patientsCount}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Last Active:</span>
-                            <span className="font-medium">{doctor.lastActive}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            doctor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1)}
-                          </span>
-                          <button className="text-blue-600 hover:text-blue-800 text-sm">View Profile</button>
-                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <Shield className="w-8 h-8 text-gray-400" />
                       </div>
-                    ))}
-                  </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h3>
+                      <p className="text-gray-500 mb-6">Get started by adding your first doctor or dietician to the system.</p>
+                      <button 
+                        onClick={() => setIsAddDoctorOpen(true)}
+                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>Add First Doctor</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1971,44 +2078,6 @@ const AdminDashboard = () => {
         </main>
       </div>
 
-      {/* Quick Actions Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-[260px]'} bg-white border-l border-gray-200 shadow-lg flex flex-col flex-shrink-0`}>
-        <div className="p-6 flex-1">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Quick Actions</h3>
-          
-          <div className="space-y-4">
-            <button className="flex items-center space-x-3 w-full p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left">
-              <Download className="w-5 h-5 text-blue-600" />
-              {!sidebarCollapsed && (
-                <div>
-                  <p className="font-medium text-blue-800">Export Reports</p>
-                  <p className="text-xs text-blue-600">Download system data</p>
-                </div>
-              )}
-            </button>
-            
-            <button className="flex items-center space-x-3 w-full p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left">
-              <RefreshCw className="w-5 h-5 text-green-600" />
-              {!sidebarCollapsed && (
-                <div>
-                  <p className="font-medium text-green-800">Refresh Data</p>
-                  <p className="text-xs text-green-600">Update all records</p>
-                </div>
-              )}
-            </button>
-            
-            <button className="flex items-center space-x-3 w-full p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left">
-              <Settings className="w-5 h-5 text-purple-600" />
-              {!sidebarCollapsed && (
-                <div>
-                  <p className="font-medium text-purple-800">System Settings</p>
-                  <p className="text-xs text-purple-600">Configure platform</p>
-                </div>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Enhanced Add Doctor Modal */}
         {isAddDoctorOpen && (
@@ -2152,22 +2221,36 @@ const AdminDashboard = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Password <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                <input 
-                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors pr-12 ${
-                            doctorFormErrors.password ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                  placeholder="Enter password" 
-                          type={showPassword ? 'text' : 'password'}
-                  value={doctorForm.password} 
-                          onChange={e => handleDoctorFormChange('password', e.target.value)}
-                        />
+                      <div className="flex space-x-2">
+                        <div className="relative flex-1">
+                          <input 
+                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors pr-12 ${
+                              doctorFormErrors.password ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                            placeholder="Enter password" 
+                            type={showPassword ? 'text' : 'password'}
+                            value={doctorForm.password} 
+                            onChange={e => handleDoctorFormChange('password', e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          onClick={() => {
+                            const newPassword = generatePassword()
+                            handleDoctorFormChange('password', newPassword)
+                            handleDoctorFormChange('confirmPassword', newPassword)
+                          }}
+                          className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          title="Generate secure password"
                         >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          Generate
                         </button>
                       </div>
                       {doctorFormErrors.password && (
@@ -2476,6 +2559,229 @@ const AdminDashboard = () => {
           </div>
         )}
 
+      {/* View Doctor Details Modal */}
+      {isViewDoctorOpen && selectedDoctor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsViewDoctorOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-800">Doctor Details</h3>
+                <button
+                  onClick={() => setIsViewDoctorOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-medium text-xl">
+                      {selectedDoctor.fullName ? selectedDoctor.fullName.split(' ').map(n => n[0]).join('') : 'DR'}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{selectedDoctor.fullName || 'Dr. Unknown'}</h4>
+                    <p className="text-gray-600">{selectedDoctor.specialization || 'General Medicine'}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Email</label>
+                    <p className="text-gray-900">{selectedDoctor.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Phone</label>
+                    <p className="text-gray-900">{selectedDoctor.phone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Status</label>
+                    <p className={`font-medium ${selectedDoctor.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedDoctor.isActive ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Role</label>
+                    <p className="text-gray-900 capitalize">{selectedDoctor.role}</p>
+                  </div>
+                </div>
+                
+                {selectedDoctor.bio && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Bio</label>
+                    <p className="text-gray-900 mt-1">{selectedDoctor.bio}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Doctor Modal */}
+      {isEditDoctorOpen && selectedDoctor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsEditDoctorOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-800">Edit Doctor</h3>
+                <button
+                  onClick={() => setIsEditDoctorOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={selectedDoctor.fullName || `${selectedDoctor.firstName || ''} ${selectedDoctor.lastName || ''}`.trim()}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, fullName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={selectedDoctor.email || ''}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={selectedDoctor.password || ''}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showCurrentPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Current password (read-only)</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    placeholder="Enter new password (leave blank to keep current)"
+                    value={selectedDoctor.newPassword || ''}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, newPassword: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                  <input
+                    type="text"
+                    value={selectedDoctor.specialization || ''}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, specialization: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={selectedDoctor.phone || selectedDoctor.doctorInfo?.phoneNumber || ''}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, phone: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={selectedDoctor.isActive ? 'active' : 'inactive'}
+                    onChange={(e) => setSelectedDoctor({...selectedDoctor, isActive: e.target.value === 'active'})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={() => setIsEditDoctorOpen(false)}
+                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Prepare the update data
+                        const updateData = {
+                          fullName: selectedDoctor.fullName,
+                          email: selectedDoctor.email,
+                          specialization: selectedDoctor.specialization,
+                          phone: selectedDoctor.phone,
+                          isActive: selectedDoctor.isActive
+                        };
+
+                        // Only include password if it's provided
+                        if (selectedDoctor.newPassword && selectedDoctor.newPassword.trim()) {
+                          updateData.password = selectedDoctor.newPassword;
+                        }
+
+                        const response = await axios.put(`/api/admin/users/${selectedDoctor._id}`, updateData);
+                        
+                        if (response.data.success) {
+                          await fetchUsers();
+                          setIsEditDoctorOpen(false);
+                          setSelectedDoctor(null);
+                          // Show success message
+                          alert('Doctor updated successfully!');
+                        } else {
+                          alert('Failed to update doctor: ' + response.data.message);
+                        }
+                      } catch (error) {
+                        console.error('Error updating doctor:', error);
+                        alert('Error updating doctor: ' + (error.response?.data?.message || error.message));
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Patient Assignment Modal */}
       <PatientAssignmentModal
         isOpen={isPatientAssignmentOpen}
@@ -2486,6 +2792,135 @@ const AdminDashboard = () => {
           setIsPatientAssignmentOpen(false)
         }}
       />
+
+      {/* Doctor Credentials Modal */}
+      {showCredentialsModal && generatedCredentials && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Doctor Created Successfully!</h3>
+                    <p className="text-sm text-gray-500">Login credentials generated</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCredentialsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">Doctor Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Name:</span>
+                      <span className="text-blue-900 font-medium">{generatedCredentials.doctorName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Specialization:</span>
+                      <span className="text-blue-900 font-medium">{generatedCredentials.specialization}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Doctor ID:</span>
+                      <span className="text-blue-900 font-medium font-mono text-xs">{generatedCredentials.doctorId}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Login Credentials</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={generatedCredentials.email}
+                          readOnly
+                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono"
+                        />
+                        <button
+                          onClick={() => copyToClipboard(generatedCredentials.email, 'Email')}
+                          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Copy email"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="password"
+                          value={generatedCredentials.password}
+                          readOnly
+                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono"
+                        />
+                        <button
+                          onClick={() => copyToClipboard(generatedCredentials.password, 'Password')}
+                          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Copy password"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Important Security Notice</p>
+                      <p>Please securely share these credentials with the doctor. They should change their password after first login for security purposes.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4">
+                  {copySuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-green-800 text-sm font-medium">{copySuccess}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => {
+                        const credentials = `Email: ${generatedCredentials.email}\nPassword: ${generatedCredentials.password}\nDoctor: ${generatedCredentials.doctorName}\nSpecialization: ${generatedCredentials.specialization}`;
+                        copyToClipboard(credentials, 'All credentials');
+                      }}
+                      className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy All</span>
+                    </button>
+                    <button
+                      onClick={() => setShowCredentialsModal(false)}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

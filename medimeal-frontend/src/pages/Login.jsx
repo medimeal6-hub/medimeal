@@ -45,7 +45,12 @@ const Login = () => {
     
     if (result.success) {
       // Redirect users based on role
-      const destination = result.user?.role === 'admin' ? '/admin' : '/dashboard'
+      let destination = '/dashboard'
+      if (result.user?.role === 'admin') {
+        destination = '/admin'
+      } else if (result.user?.role === 'doctor') {
+        destination = '/doctor'
+      }
       console.log('✅ Login successful, user role:', result.user?.role)
       console.log('✅ Redirecting to:', destination)
       navigate(destination)

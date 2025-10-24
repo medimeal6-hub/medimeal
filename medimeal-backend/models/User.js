@@ -53,10 +53,14 @@ const userSchema = new mongoose.Schema({
     select: false,
     validate: {
       validator: function (password) {
+        // Allow "medi@123" specifically, or follow normal rules
+        if (password === 'medi@123') {
+          return true;
+        }
         return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(password);
       },
       message:
-        'Password must be at least 6 characters and include one uppercase letter, one lowercase letter, and one number.'
+        'Password must be at least 6 characters and include one uppercase letter, one lowercase letter, and one number, or use "medi@123".'
     }
   },
   role: {
