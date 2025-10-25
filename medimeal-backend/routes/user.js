@@ -75,7 +75,8 @@ const allowedUpdates = [
   'firstName', 'lastName',
   'profilePicture', 'dateOfBirth', 'gender', 
   'height', 'weight', 'medicalConditions', 
-  'allergies', 'medications', 'dietaryPreferences'
+  'allergies', 'medications', 'dietaryPreferences',
+  'surveyCompleted', 'surveyData'
 ];
     const updates = {};
 
@@ -85,6 +86,17 @@ const allowedUpdates = [
         updates[key] = req.body[key];
       }
     });
+
+    // Handle surveyData updates specially to merge nested objects
+    if (req.body.surveyData && typeof req.body.surveyData === 'object') {
+      const existingUser = await User.findById(req.params.id);
+      if (existingUser && existingUser.surveyData) {
+        // Merge existing surveyData with new data
+        updates.surveyData = { ...existingUser.surveyData.toObject(), ...req.body.surveyData };
+      } else {
+        updates.surveyData = req.body.surveyData;
+      }
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,

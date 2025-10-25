@@ -1,0 +1,51 @@
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="12.16591">
+<testsuite name="auth.spec.js" timestamp="2025-10-25T01:17:45.027Z" hostname="chromium" tests="1" failures="1" skipped="0" time="8.652" errors="0">
+<testcase name="Authentication › User Login › should login successfully as user" classname="auth.spec.js" time="8.652">
+<failure message="auth.spec.js:46:5 should login successfully as user" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.js:46:5 › Authentication › User Login › should login successfully as user ─
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('text=Dashboard')
+    Expected: visible
+    Error: strict mode violation: locator('text=Dashboard') resolved to 2 elements:
+        1) <a href="/dashboard" class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 bg-green-50 text-green-700">…</a> aka getByRole('link', { name: 'Dashboard' })
+        2) <h1 class="text-xl font-semibold text-gray-900">Dashboard</h1> aka getByRole('heading', { name: 'Dashboard' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('text=Dashboard')
+
+
+      51 |       
+      52 |       // Should show user dashboard elements
+    > 53 |       await expect(page.locator('text=Dashboard')).toBeVisible();
+         |                                                    ^
+      54 |       await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
+      55 |     });
+      56 |
+        at C:\Users\siyas\Downloads\medimeal\medi\medimeal-frontend\tests\auth.spec.js:53:52
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\video.webm]]
+
+[[ATTACHMENT|auth-Authentication-User-L-74e2a--login-successfully-as-user-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

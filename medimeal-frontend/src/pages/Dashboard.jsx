@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { 
   Heart, 
   Upload, 
@@ -20,7 +21,7 @@ import ImagePlaceholder from '../components/ImagePlaceholder'
 import { getMealImage, getMealTypeColor } from '../utils/mealImages'
 
 const Dashboard = () => {
-  const { user } = useAuth()
+  const { user, updateUserData } = useAuth()
   const navigate = useNavigate()
   const [featuredMeal] = useState(mealsData[0])
   const [allMeals, setAllMeals] = useState(mealsData)
@@ -29,6 +30,22 @@ const Dashboard = () => {
   const [sortBy, setSortBy] = useState('calories')
   const [viewMode, setViewMode] = useState('grid')
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(null)
+  const [showHealthSurvey, setShowHealthSurvey] = useState(false)
+  const [filteredMeals, setFilteredMeals] = useState(mealsData)
+  const [surveyFormData, setSurveyFormData] = useState({
+    hasPressure: false,
+    hasSugar: false,
+    isPregnant: false,
+    hasCholesterol: false,
+    hasHeartDisease: false,
+    hasKidneyDisease: false,
+    hasAcidReflux: false,
+    hasGlutenIntolerance: false,
+    hasLactoseIntolerance: false,
+    allergies: '',
+    otherConditions: ''
+  })
+  const [surveyLoading, setSurveyLoading] = useState(false)
 
   const stats = [
     {
@@ -89,6 +106,61 @@ const Dashboard = () => {
     })
   }
 
+  // Show health survey on every visit
+  useEffect(() => {
+    if (user) {
+      setShowHealthSurvey(true)
+      // Pre-populate form with existing survey data
+      if (user.surveyData) {
+        const conditions = user.surveyData.medicalConditions || []
+        setSurveyFormData({
+          hasPressure: conditions.includes('high-blood-pressure'),
+          hasSugar: conditions.includes('diabetes'),
+          isPregnant: conditions.includes('pregnancy'),
+          hasCholesterol: conditions.includes('high-cholesterol'),
+          hasHeartDisease: conditions.includes('heart-disease'),
+          hasKidneyDisease: conditions.includes('kidney-disease'),
+          hasAcidReflux: conditions.includes('acid-reflux'),
+          hasGlutenIntolerance: conditions.includes('gluten-free'),
+          hasLactoseIntolerance: conditions.includes('dairy-free'),
+          allergies: (user.surveyData.allergies || []).join(', '),
+          otherConditions: ''
+        })
+      }
+    }
+  }, [user])
+
+  // Filter meals based on user's health conditions
+  useEffect(() => {
+    if (!user || !user.surveyData) {
+      setFilteredMeals(mealsData)
+      return
+    }
+
+    const healthConditions = user.surveyData.medicalConditions || []
+    const allergies = user.surveyData.allergies || []
+
+    let filtered = mealsData.filter(meal => {
+      // Check if meal is suitable for all health conditions
+      for (const condition of healthConditions) {
+        if (meal.unsuitableFor && meal.unsuitableFor.includes(condition)) {
+          return false
+        }
+      }
+
+      // Check allergies
+      for (const allergy of allergies) {
+        if (meal.containsAllergens && meal.containsAllergens.includes(allergy.toLowerCase())) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+    setFilteredMeals(filtered)
+  }, [user])
+
   // Handle keyboard events for confirmation dialog
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -102,6 +174,79 @@ const Dashboard = () => {
       return () => document.removeEventListener('keydown', handleKeyDown)
     }
   }, [showRemoveConfirm])
+
+  const handleSurveySubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!user?._id) {
+      alert('User ID not found. Please refresh the page.')
+      return
+    }
+    
+    setSurveyLoading(true)
+
+    try {
+      // Collect selected health conditions
+      const selectedConditions = []
+      if (surveyFormData.hasPressure) selectedConditions.push('high-blood-pressure')
+      if (surveyFormData.hasSugar) selectedConditions.push('diabetes')
+      if (surveyFormData.isPregnant) selectedConditions.push('pregnancy')
+      if (surveyFormData.hasCholesterol) selectedConditions.push('high-cholesterol')
+      if (surveyFormData.hasHeartDisease) selectedConditions.push('heart-disease')
+      if (surveyFormData.hasKidneyDisease) selectedConditions.push('kidney-disease')
+      if (surveyFormData.hasAcidReflux) selectedConditions.push('acid-reflux')
+      if (surveyFormData.hasGlutenIntolerance) selectedConditions.push('gluten-free')
+      if (surveyFormData.hasLactoseIntolerance) selectedConditions.push('dairy-free')
+
+      // Parse allergies
+      const allergiesList = surveyFormData.allergies
+        .split(',')
+        .map(a => a.trim())
+        .filter(a => a.length > 0)
+
+      // Parse other conditions
+      const otherConditionsList = surveyFormData.otherConditions
+        .split(',')
+        .map(c => c.trim())
+        .filter(c => c.length > 0)
+
+      const surveyUpdate = {
+        surveyCompleted: true,
+        surveyData: {
+          medicalConditions: [...selectedConditions, ...otherConditionsList],
+          allergies: allergiesList,
+          completedAt: new Date()
+        }
+      }
+
+      const response = await axios.put(`/api/users/${user._id}`, surveyUpdate)
+      
+      if (response.data.success) {
+        updateUserData(response.data.data)
+        setShowHealthSurvey(false)
+      }
+    } catch (error) {
+      console.error('Error submitting survey:', error)
+      alert('Failed to save survey. Please try again.')
+    } finally {
+      setSurveyLoading(false)
+    }
+  }
+
+  const handleSurveyToggle = (key) => {
+    setSurveyFormData(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
+
+  const handleSurveyInputChange = (e) => {
+    const { name, value } = e.target
+    setSurveyFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
@@ -122,8 +267,8 @@ const Dashboard = () => {
 
   // Filter meals based on active tab and removed meals
   const getFilteredMeals = () => {
-    // First filter out removed meals
-    let filtered = allMeals.filter(meal => !removedMeals.has(meal.id))
+    // Start with health-filtered meals
+    let filtered = filteredMeals.filter(meal => !removedMeals.has(meal.id))
     
     // Then filter by meal type
     if (activeTab !== 'All') {
@@ -152,8 +297,162 @@ const Dashboard = () => {
   // Get the final processed meals
   const processedMeals = getSortedMeals(getFilteredMeals())
 
+  const healthConditions = [
+    { key: 'hasPressure', label: 'High Blood Pressure', description: 'Meals low in sodium and healthy fats' },
+    { key: 'hasSugar', label: 'Diabetes / High Sugar', description: 'Meals with controlled carbohydrates and low glycemic index' },
+    { key: 'isPregnant', label: 'Pregnancy', description: 'Pregnancy-safe meals with essential nutrients' },
+    { key: 'hasCholesterol', label: 'High Cholesterol', description: 'Heart-healthy meals low in saturated fats' },
+    { key: 'hasHeartDisease', label: 'Heart Disease', description: 'Cardiac-friendly meals rich in omega-3s' },
+    { key: 'hasKidneyDisease', label: 'Kidney Disease', description: 'Low-protein, kidney-friendly meals' },
+    { key: 'hasAcidReflux', label: 'Acid Reflux / GERD', description: 'Meals avoiding trigger foods' },
+    { key: 'hasGlutenIntolerance', label: 'Gluten Intolerance', description: 'Gluten-free meal options' },
+    { key: 'hasLactoseIntolerance', label: 'Lactose Intolerance', description: 'Dairy-free meal options' }
+  ]
+
   return (
     <div className="space-y-8">
+      {/* Health Survey Section - Top of Dashboard */}
+      {showHealthSurvey && (
+        <div className="bg-gradient-to-br from-white via-green-50/30 to-blue-50/30 rounded-2xl border border-green-200/50 shadow-lg backdrop-blur-sm">
+          {/* Header */}
+          <div className="px-8 py-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Heart className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Health Preferences</h2>
+                  <p className="text-green-100 text-sm mt-1">Personalize your meal recommendations</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHealthSurvey(false)}
+                className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Form Content */}
+          <form onSubmit={handleSurveySubmit} className="p-8">
+            {/* Health Conditions Section */}
+            <div className="mb-8">
+              <div className="flex items-center mb-6">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Health Conditions</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {healthConditions.map((condition) => (
+                  <label
+                    key={condition.key}
+                    className={`group relative flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md ${
+                      surveyFormData[condition.key]
+                        ? 'border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
+                        : 'border-gray-200 hover:border-green-300 bg-white hover:bg-green-50/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={surveyFormData[condition.key]}
+                      onChange={() => handleSurveyToggle(condition.key)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center mr-4 flex-shrink-0 mt-0.5 transition-all duration-200 ${
+                      surveyFormData[condition.key]
+                        ? 'border-green-500 bg-gradient-to-r from-green-500 to-emerald-500 shadow-sm'
+                        : 'border-gray-300 group-hover:border-green-400'
+                    }`}>
+                      {surveyFormData[condition.key] && (
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                        {condition.label}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1 leading-relaxed">{condition.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                  <div className="w-6 h-6 bg-gradient-to-r from-orange-400 to-red-400 rounded-lg flex items-center justify-center mr-2">
+                    <AlertTriangle className="h-3 w-3 text-white" />
+                  </div>
+                  Food Allergies
+                </label>
+                <input
+                  type="text"
+                  name="allergies"
+                  value={surveyFormData.allergies}
+                  onChange={handleSurveyInputChange}
+                  placeholder="e.g., peanuts, shellfish, eggs"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-4 focus:ring-green-200 focus:border-green-400 transition-all duration-200 bg-white/80 backdrop-blur-sm"
+                />
+                <p className="text-xs text-gray-500 mt-2 flex items-center">
+                  <span className="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
+                  Separate multiple allergies with commas
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                  <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg flex items-center justify-center mr-2">
+                    <Heart className="h-3 w-3 text-white" />
+                  </div>
+                  Other Conditions
+                </label>
+                <input
+                  type="text"
+                  name="otherConditions"
+                  value={surveyFormData.otherConditions}
+                  onChange={handleSurveyInputChange}
+                  placeholder="e.g., anemia, thyroid issues"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:ring-4 focus:ring-green-200 focus:border-green-400 transition-all duration-200 bg-white/80 backdrop-blur-sm"
+                />
+                <p className="text-xs text-gray-500 mt-2 flex items-center">
+                  <span className="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
+                  Separate multiple conditions with commas
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200/50">
+              <button
+                type="button"
+                onClick={() => setShowHealthSurvey(false)}
+                className="px-6 py-3 text-sm font-semibold text-gray-600 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-200 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={surveyLoading}
+                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 border border-transparent rounded-xl hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+              >
+                {surveyLoading ? (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  'Save Preferences'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Confirmation Dialog */}
       {showRemoveConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -276,6 +575,11 @@ const Dashboard = () => {
               {removedMeals.size > 0 && (
                 <span className="ml-2 text-orange-600">
                   ({removedMeals.size} removed)
+                </span>
+              )}
+              {user?.surveyData?.medicalConditions?.length > 0 && (
+                <span className="ml-2 text-green-600 font-medium">
+                  ✓ Filtered by your health conditions
                 </span>
               )}
             </p>

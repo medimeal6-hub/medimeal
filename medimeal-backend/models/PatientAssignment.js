@@ -1,99 +1,117 @@
 const mongoose = require('mongoose');
 
 const patientAssignmentSchema = new mongoose.Schema({
-  patient: {
+  doctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [true, 'Doctor ID is required']
   },
-  doctor: {
+  patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [true, 'Patient ID is required']
   },
   assignedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: [true, 'Assigned by user ID is required']
   },
-  wardNumber: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'critical'],
-    default: 'medium'
-  },
-  startDate: {
+  assignmentDate: {
     type: Date,
     default: Date.now
   },
-  endDate: {
-    type: Date
-  },
   status: {
     type: String,
-    enum: ['active', 'discharged', 'transferred', 'cancelled'],
+    enum: ['active', 'inactive', 'transferred', 'discharged'],
     default: 'active'
   },
   notes: {
     type: String,
-    default: ''
+    trim: true,
+    maxlength: [500, 'Notes cannot exceed 500 characters']
   },
-  diagnosis: {
-    type: String,
-    default: ''
-  },
-  treatmentPlan: {
-    type: String,
-    default: ''
-  },
-  assignedAt: {
-    type: Date,
-    default: Date.now
-  },
-  lastUpdated: {
-    type: Date,
-    default: Date.now
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
 
-// Indexes
-patientAssignmentSchema.index({ patient: 1, doctor: 1 });
-patientAssignmentSchema.index({ doctor: 1, status: 1 });
-patientAssignmentSchema.index({ wardNumber: 1 });
-patientAssignmentSchema.index({ priority: 1 });
+// Indexes for better performance
+patientAssignmentSchema.index({ doctorId: 1 });
+patientAssignmentSchema.index({ patientId: 1 });
+patientAssignmentSchema.index({ status: 1 });
+patientAssignmentSchema.index({ isActive: 1 });
 
-// Virtual for patient name
-patientAssignmentSchema.virtual('patientName').get(function() {
-  return this.populated('patient') ? `${this.patient.firstName} ${this.patient.lastName}` : '';
-});
+// Ensure unique doctor-patient assignment
+patientAssignmentSchema.index({ doctorId: 1, patientId: 1 }, { unique: true });
 
-// Virtual for doctor name
-patientAssignmentSchema.virtual('doctorName').get(function() {
-  return this.populated('doctor') ? `Dr. ${this.doctor.firstName} ${this.doctor.lastName}` : '';
-});
+// Static method to find patients for a doctor
+patientAssignmentSchema.statics.findPatientsForDoctor = function(doctorId) {
+  return this.find({ 
+    doctorId, 
+    status: 'active',
+    isActive: true 
+  })
+  .populate('patientId', 'firstName lastName email phoneNumber dateOfBirth gender medicalConditions allergies')
+  .sort({ assignmentDate: -1 });
+};
 
-// Method to get assignment summary
-patientAssignmentSchema.methods.getSummary = function() {
-  return {
-    id: this._id,
-    patientId: this.patient,
-    patientName: this.patientName,
-    doctorId: this.doctor,
-    doctorName: this.doctorName,
-    wardNumber: this.wardNumber,
-    priority: this.priority,
-    status: this.status,
-    startDate: this.startDate,
-    endDate: this.endDate,
-    diagnosis: this.diagnosis,
-    assignedAt: this.assignedAt
-  };
+// Static method to find doctors for a patient
+patientAssignmentSchema.statics.findDoctorsForPatient = function(patientId) {
+  return this.find({ 
+    patientId, 
+    status: 'active',
+    isActive: true 
+  })
+  .populate('doctorId', 'firstName lastName email specialization phoneNumber')
+  .sort({ assignmentDate: -1 });
+};
+
+// Static method to check if assignment exists
+patientAssignmentSchema.statics.checkAssignment = function(doctorId, patientId) {
+  return this.findOne({ 
+    doctorId, 
+    patientId, 
+    status: 'active',
+    isActive: true 
+  });
+};
+
+// Static method to transfer patient
+patientAssignmentSchema.statics.transferPatient = function(currentDoctorId, newDoctorId, patientId, transferredBy) {
+  return this.findOneAndUpdate(
+    { doctorId: currentDoctorId, patientId, status: 'active' },
+    { 
+      status: 'transferred',
+      isActive: false,
+      notes: `Transferred to new doctor on ${new Date().toISOString()}`
+    },
+    { new: true }
+  ).then(() => {
+    // Create new assignment
+    return this.create({
+      doctorId: newDoctorId,
+      patientId,
+      assignedBy: transferredBy,
+      notes: `Transferred from previous doctor on ${new Date().toISOString()}`
+    });
+  });
+};
+
+// Method to deactivate assignment
+patientAssignmentSchema.methods.deactivate = function() {
+  this.status = 'inactive';
+  this.isActive = false;
+  return this.save();
+};
+
+// Method to discharge patient
+patientAssignmentSchema.methods.discharge = function() {
+  this.status = 'discharged';
+  this.isActive = false;
+  return this.save();
 };
 
 module.exports = mongoose.model('PatientAssignment', patientAssignmentSchema);

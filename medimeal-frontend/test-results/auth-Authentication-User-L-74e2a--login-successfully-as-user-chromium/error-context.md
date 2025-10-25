@@ -1,0 +1,420 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e6]:
+  - generic [ref=e8]:
+    - generic [ref=e10]:
+      - img [ref=e12]
+      - generic [ref=e14]: MediMeal
+    - navigation [ref=e15]:
+      - link "Dashboard" [ref=e16] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e17]
+        - text: Dashboard
+      - link "Calendar" [ref=e22] [cursor=pointer]:
+        - /url: /calendar
+        - img [ref=e23]
+        - text: Calendar
+      - link "Healthy Menu" [ref=e25] [cursor=pointer]:
+        - /url: /meals
+        - img [ref=e26]
+        - text: Healthy Menu
+      - link "Meal Plan" [ref=e29] [cursor=pointer]:
+        - /url: /meal-plan
+        - img [ref=e30]
+        - text: Meal Plan
+      - link "Food Diary" [ref=e33] [cursor=pointer]:
+        - /url: /food-diary
+        - img [ref=e34]
+        - text: Food Diary
+      - link "Medications" [ref=e37] [cursor=pointer]:
+        - /url: /medications
+        - img [ref=e38]
+        - text: Medications
+      - link "Progress" [ref=e41] [cursor=pointer]:
+        - /url: /progress
+        - img [ref=e42]
+        - text: Progress
+      - link "Exercises" [ref=e44] [cursor=pointer]:
+        - /url: /exercises
+        - img [ref=e45]
+        - text: Exercises
+      - link "Insights" [ref=e53] [cursor=pointer]:
+        - /url: /insights
+        - img [ref=e54]
+        - text: Insights
+      - link "Alerts" [ref=e57] [cursor=pointer]:
+        - /url: /alerts
+        - img [ref=e58]
+        - text: Alerts
+      - link "Settings" [ref=e61] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e62]
+        - text: Settings
+    - button "Logout" [ref=e66] [cursor=pointer]:
+      - img [ref=e67]
+      - text: Logout
+  - generic [ref=e70]:
+    - banner [ref=e72]:
+      - generic [ref=e73]:
+        - heading "Dashboard" [level=1] [ref=e76]
+        - generic [ref=e78]:
+          - generic:
+            - img
+          - textbox "Search menu" [ref=e79]
+        - generic [ref=e80]:
+          - button "Add Menu" [ref=e81] [cursor=pointer]
+          - button [ref=e82] [cursor=pointer]:
+            - img [ref=e83]
+          - button "👤" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: 👤
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e93]:
+            - generic [ref=e94]:
+              - img [ref=e96]
+              - generic [ref=e98]:
+                - heading "Health Preferences" [level=2] [ref=e99]
+                - paragraph [ref=e100]: Personalize your meal recommendations
+            - button [ref=e101] [cursor=pointer]:
+              - img [ref=e102]
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - img [ref=e109]
+                - heading "Health Conditions" [level=3] [ref=e112]
+              - generic [ref=e113]:
+                - generic [ref=e114] [cursor=pointer]:
+                  - checkbox "High Blood Pressure Meals low in sodium and healthy fats" [ref=e115]
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: High Blood Pressure
+                    - generic [ref=e119]: Meals low in sodium and healthy fats
+                - generic [ref=e120] [cursor=pointer]:
+                  - checkbox "Diabetes / High Sugar Meals with controlled carbohydrates and low glycemic index" [ref=e121]
+                  - generic [ref=e123]:
+                    - generic [ref=e124]: Diabetes / High Sugar
+                    - generic [ref=e125]: Meals with controlled carbohydrates and low glycemic index
+                - generic [ref=e126] [cursor=pointer]:
+                  - checkbox "Pregnancy Pregnancy-safe meals with essential nutrients" [ref=e127]
+                  - generic [ref=e129]:
+                    - generic [ref=e130]: Pregnancy
+                    - generic [ref=e131]: Pregnancy-safe meals with essential nutrients
+                - generic [ref=e132] [cursor=pointer]:
+                  - checkbox "High Cholesterol Heart-healthy meals low in saturated fats" [ref=e133]
+                  - generic [ref=e135]:
+                    - generic [ref=e136]: High Cholesterol
+                    - generic [ref=e137]: Heart-healthy meals low in saturated fats
+                - generic [ref=e138] [cursor=pointer]:
+                  - checkbox "Heart Disease Cardiac-friendly meals rich in omega-3s" [ref=e139]
+                  - generic [ref=e141]:
+                    - generic [ref=e142]: Heart Disease
+                    - generic [ref=e143]: Cardiac-friendly meals rich in omega-3s
+                - generic [ref=e144] [cursor=pointer]:
+                  - checkbox "Kidney Disease Low-protein, kidney-friendly meals" [ref=e145]
+                  - generic [ref=e147]:
+                    - generic [ref=e148]: Kidney Disease
+                    - generic [ref=e149]: Low-protein, kidney-friendly meals
+                - generic [ref=e150] [cursor=pointer]:
+                  - checkbox "Acid Reflux / GERD Meals avoiding trigger foods" [ref=e151]
+                  - generic [ref=e153]:
+                    - generic [ref=e154]: Acid Reflux / GERD
+                    - generic [ref=e155]: Meals avoiding trigger foods
+                - generic [ref=e156] [cursor=pointer]:
+                  - checkbox "Gluten Intolerance Gluten-free meal options" [ref=e157]
+                  - generic [ref=e159]:
+                    - generic [ref=e160]: Gluten Intolerance
+                    - generic [ref=e161]: Gluten-free meal options
+                - generic [ref=e162] [cursor=pointer]:
+                  - checkbox "Lactose Intolerance Dairy-free meal options" [ref=e163]
+                  - generic [ref=e165]:
+                    - generic [ref=e166]: Lactose Intolerance
+                    - generic [ref=e167]: Dairy-free meal options
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - generic [ref=e170]:
+                  - img [ref=e172]
+                  - text: Food Allergies
+                - textbox "e.g., peanuts, shellfish, eggs" [ref=e174]
+                - paragraph [ref=e175]: Separate multiple allergies with commas
+              - generic [ref=e177]:
+                - generic [ref=e178]:
+                  - img [ref=e180]
+                  - text: Other Conditions
+                - textbox "e.g., anemia, thyroid issues" [ref=e182]
+                - paragraph [ref=e183]: Separate multiple conditions with commas
+            - generic [ref=e185]:
+              - button "Cancel" [ref=e186] [cursor=pointer]
+              - button "Save Preferences" [ref=e187] [cursor=pointer]
+        - generic [ref=e188]:
+          - heading "Featured Menu" [level=2] [ref=e189]
+          - generic [ref=e191]:
+            - img "Grilled Turkey Breast with Steamed Asparagus and Brown Rice" [ref=e193]
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]:
+                  - heading "Grilled Turkey Breast with Steamed Asparagus and Brown Rice" [level=3] [ref=e197]
+                  - generic [ref=e198]:
+                    - generic [ref=e199]: Lunch
+                    - generic [ref=e200]:
+                      - img [ref=e201]
+                      - generic [ref=e203]: 4.5/5 (125 reviews)
+                    - generic [ref=e204]: Easy
+                - generic [ref=e205]:
+                  - img [ref=e206]
+                  - generic [ref=e208]: 85/100
+              - generic [ref=e209]:
+                - generic [ref=e210]:
+                  - img [ref=e211]
+                  - generic [ref=e214]: 25 min
+                - generic [ref=e215]:
+                  - generic [ref=e216]: 📋
+                  - generic [ref=e217]: 6 steps
+              - generic [ref=e218]:
+                - generic [ref=e219]:
+                  - generic [ref=e220]: "450"
+                  - generic [ref=e221]: Calories
+                - generic [ref=e222]:
+                  - generic [ref=e223]: 40g
+                  - generic [ref=e224]: Carbs
+                - generic [ref=e225]:
+                  - generic [ref=e226]: 35g
+                  - generic [ref=e227]: Proteins
+                - generic [ref=e228]:
+                  - generic [ref=e229]: 12g
+                  - generic [ref=e230]: Fats
+              - button "Add to Meal Plan" [ref=e231] [cursor=pointer]:
+                - img [ref=e232]
+                - text: Add to Meal Plan
+        - generic [ref=e233]:
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - heading "All Menu" [level=2] [ref=e236]
+              - paragraph [ref=e237]: Showing 9 meals
+            - generic [ref=e238]:
+              - generic [ref=e239]:
+                - button "All" [ref=e240] [cursor=pointer]
+                - button "Breakfast" [ref=e241] [cursor=pointer]
+                - button "Lunch" [ref=e242] [cursor=pointer]
+                - button "Snack" [ref=e243] [cursor=pointer]
+                - button "Dinner" [ref=e244] [cursor=pointer]
+              - generic [ref=e245]:
+                - button "🔽 Filter" [ref=e246] [cursor=pointer]:
+                  - generic [ref=e247]: 🔽
+                  - text: Filter
+                - combobox [ref=e248]:
+                  - 'option "Sort by: Calories" [selected]'
+                  - 'option "Sort by: Rating"'
+                  - 'option "Sort by: Health Score"'
+                - generic [ref=e249]:
+                  - button "⊞" [ref=e250] [cursor=pointer]
+                  - button "☰" [ref=e251] [cursor=pointer]
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - img "Mixed Berry Smoothie Bowl" [ref=e254]
+              - generic [ref=e255]:
+                - generic [ref=e256]:
+                  - heading "Mixed Berry Smoothie Bowl" [level=4] [ref=e257]
+                  - generic [ref=e258]:
+                    - generic [ref=e259]:
+                      - img [ref=e260]
+                      - generic [ref=e262]: 82/100
+                    - button "Remove meal" [ref=e263] [cursor=pointer]:
+                      - img [ref=e264]
+                - generic [ref=e267]:
+                  - generic [ref=e268]: Snack
+                  - generic [ref=e269]: Easy
+                - generic [ref=e270]:
+                  - generic [ref=e271]: 180 kcal
+                  - generic [ref=e272]: 8g protein
+                  - generic [ref=e273]: 28g carbs
+                  - generic [ref=e274]: 4g fats
+                - button "Add to Meal Plan" [ref=e275] [cursor=pointer]
+            - generic [ref=e276]:
+              - img "Greek Yogurt with Honey and Nuts" [ref=e277]
+              - generic [ref=e278]:
+                - generic [ref=e279]:
+                  - heading "Greek Yogurt with Honey and Nuts" [level=4] [ref=e280]
+                  - generic [ref=e281]:
+                    - generic [ref=e282]:
+                      - img [ref=e283]
+                      - generic [ref=e285]: 90/100
+                    - button "Remove meal" [ref=e286] [cursor=pointer]:
+                      - img [ref=e287]
+                - generic [ref=e290]:
+                  - generic [ref=e291]: Snack
+                  - generic [ref=e292]: Easy
+                - generic [ref=e293]:
+                  - generic [ref=e294]: 220 kcal
+                  - generic [ref=e295]: 15g protein
+                  - generic [ref=e296]: 20g carbs
+                  - generic [ref=e297]: 10g fats
+                - button "Add to Meal Plan" [ref=e298] [cursor=pointer]
+            - generic [ref=e299]:
+              - img "Avocado Toast with Poached Egg" [ref=e300]
+              - generic [ref=e301]:
+                - generic [ref=e302]:
+                  - heading "Avocado Toast with Poached Egg" [level=4] [ref=e303]
+                  - generic [ref=e304]:
+                    - generic [ref=e305]:
+                      - img [ref=e306]
+                      - generic [ref=e308]: 88/100
+                    - button "Remove meal" [ref=e309] [cursor=pointer]:
+                      - img [ref=e310]
+                - generic [ref=e313]:
+                  - generic [ref=e314]: Breakfast
+                  - generic [ref=e315]: Medium
+                - generic [ref=e316]:
+                  - generic [ref=e317]: 280 kcal
+                  - generic [ref=e318]: 12g protein
+                  - generic [ref=e319]: 20g carbs
+                  - generic [ref=e320]: 18g fats
+                - button "Add to Meal Plan" [ref=e321] [cursor=pointer]
+            - generic [ref=e322]:
+              - img "Healthy Breakfast Bowl with Greek Yogurt and Berries" [ref=e323]
+              - generic [ref=e324]:
+                - generic [ref=e325]:
+                  - heading "Healthy Breakfast Bowl with Greek Yogurt and Berries" [level=4] [ref=e326]
+                  - generic [ref=e327]:
+                    - generic [ref=e328]:
+                      - img [ref=e329]
+                      - generic [ref=e331]: 92/100
+                    - button "Remove meal" [ref=e332] [cursor=pointer]:
+                      - img [ref=e333]
+                - generic [ref=e336]:
+                  - generic [ref=e337]: Breakfast
+                  - generic [ref=e338]: Easy
+                - generic [ref=e339]:
+                  - generic [ref=e340]: 320 kcal
+                  - generic [ref=e341]: 18g protein
+                  - generic [ref=e342]: 45g carbs
+                  - generic [ref=e343]: 8g fats
+                - button "Add to Meal Plan" [ref=e344] [cursor=pointer]
+            - generic [ref=e345]:
+              - img "Mediterranean Chicken Wrap" [ref=e346]
+              - generic [ref=e347]:
+                - generic [ref=e348]:
+                  - heading "Mediterranean Chicken Wrap" [level=4] [ref=e349]
+                  - generic [ref=e350]:
+                    - generic [ref=e351]:
+                      - img [ref=e352]
+                      - generic [ref=e354]: 85/100
+                    - button "Remove meal" [ref=e355] [cursor=pointer]:
+                      - img [ref=e356]
+                - generic [ref=e359]:
+                  - generic [ref=e360]: Lunch
+                  - generic [ref=e361]: Easy
+                - generic [ref=e362]:
+                  - generic [ref=e363]: 350 kcal
+                  - generic [ref=e364]: 25g protein
+                  - generic [ref=e365]: 30g carbs
+                  - generic [ref=e366]: 15g fats
+                - button "Add to Meal Plan" [ref=e367] [cursor=pointer]
+            - generic [ref=e368]:
+              - img "Quinoa Salad with Grilled Chicken and Vegetables" [ref=e369]
+              - generic [ref=e370]:
+                - generic [ref=e371]:
+                  - heading "Quinoa Salad with Grilled Chicken and Vegetables" [level=4] [ref=e372]
+                  - generic [ref=e373]:
+                    - generic [ref=e374]:
+                      - img [ref=e375]
+                      - generic [ref=e377]: 88/100
+                    - button "Remove meal" [ref=e378] [cursor=pointer]:
+                      - img [ref=e379]
+                - generic [ref=e382]:
+                  - generic [ref=e383]: Lunch
+                  - generic [ref=e384]: Medium
+                - generic [ref=e385]:
+                  - generic [ref=e386]: 380 kcal
+                  - generic [ref=e387]: 28g protein
+                  - generic [ref=e388]: 35g carbs
+                  - generic [ref=e389]: 14g fats
+                - button "Add to Meal Plan" [ref=e390] [cursor=pointer]
+            - generic [ref=e391]:
+              - img "Grilled Vegetable Pasta" [ref=e392]
+              - generic [ref=e393]:
+                - generic [ref=e394]:
+                  - heading "Grilled Vegetable Pasta" [level=4] [ref=e395]
+                  - generic [ref=e396]:
+                    - generic [ref=e397]:
+                      - img [ref=e398]
+                      - generic [ref=e400]: 80/100
+                    - button "Remove meal" [ref=e401] [cursor=pointer]:
+                      - img [ref=e402]
+                - generic [ref=e405]:
+                  - generic [ref=e406]: Dinner
+                  - generic [ref=e407]: Medium
+                - generic [ref=e408]:
+                  - generic [ref=e409]: 400 kcal
+                  - generic [ref=e410]: 15g protein
+                  - generic [ref=e411]: 55g carbs
+                  - generic [ref=e412]: 12g fats
+                - button "Add to Meal Plan" [ref=e413] [cursor=pointer]
+            - generic [ref=e414]:
+              - img "Baked Salmon with Sweet Potato and Broccoli" [ref=e415]
+              - generic [ref=e416]:
+                - generic [ref=e417]:
+                  - heading "Baked Salmon with Sweet Potato and Broccoli" [level=4] [ref=e418]
+                  - generic [ref=e419]:
+                    - generic [ref=e420]:
+                      - img [ref=e421]
+                      - generic [ref=e423]: 90/100
+                    - button "Remove meal" [ref=e424] [cursor=pointer]:
+                      - img [ref=e425]
+                - generic [ref=e428]:
+                  - generic [ref=e429]: Dinner
+                  - generic [ref=e430]: Medium
+                - generic [ref=e431]:
+                  - generic [ref=e432]: 420 kcal
+                  - generic [ref=e433]: 32g protein
+                  - generic [ref=e434]: 25g carbs
+                  - generic [ref=e435]: 18g fats
+                - button "Add to Meal Plan" [ref=e436] [cursor=pointer]
+            - generic [ref=e437]:
+              - img "Grilled Turkey Breast with Steamed Asparagus and Brown Rice" [ref=e438]
+              - generic [ref=e439]:
+                - generic [ref=e440]:
+                  - heading "Grilled Turkey Breast with Steamed Asparagus and Brown Rice" [level=4] [ref=e441]
+                  - generic [ref=e442]:
+                    - generic [ref=e443]:
+                      - img [ref=e444]
+                      - generic [ref=e446]: 85/100
+                    - button "Remove meal" [ref=e447] [cursor=pointer]:
+                      - img [ref=e448]
+                - generic [ref=e451]:
+                  - generic [ref=e452]: Lunch
+                  - generic [ref=e453]: Easy
+                - generic [ref=e454]:
+                  - generic [ref=e455]: 450 kcal
+                  - generic [ref=e456]: 35g protein
+                  - generic [ref=e457]: 40g carbs
+                  - generic [ref=e458]: 12g fats
+                - button "Add to Meal Plan" [ref=e459] [cursor=pointer]
+        - generic [ref=e460]:
+          - heading "Progress Stats" [level=2] [ref=e461]
+          - generic [ref=e462]:
+            - generic [ref=e463]:
+              - generic [ref=e464]:
+                - img [ref=e466]
+                - img [ref=e469]
+              - generic [ref=e472]:
+                - paragraph [ref=e473]: "3"
+                - paragraph [ref=e474]: Prescriptions Uploaded
+                - paragraph [ref=e475]: +1 this week
+            - generic [ref=e476]:
+              - generic [ref=e477]:
+                - img [ref=e479]
+                - img [ref=e481]
+              - generic [ref=e484]:
+                - paragraph [ref=e485]: "12"
+                - paragraph [ref=e486]: Conflicts Avoided
+                - paragraph [ref=e487]: +3 this week
+            - generic [ref=e488]:
+              - generic [ref=e489]:
+                - img [ref=e491]
+                - img [ref=e494]
+              - generic [ref=e497]:
+                - paragraph [ref=e498]: "28"
+                - paragraph [ref=e499]: Meals Recommended
+                - paragraph [ref=e500]: +5 this week
+```

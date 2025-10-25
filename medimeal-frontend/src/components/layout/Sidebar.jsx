@@ -39,19 +39,19 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-screen bg-white">
       {/* Header */}
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-            <Leaf className="h-5 w-5 text-white" />
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <Heart className="h-5 w-5 text-white fill-white" />
           </div>
           <span className="text-lg font-bold text-gray-900">MediMeal</span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-1">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href
           return (
@@ -73,29 +73,11 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* Promotional Banner */}
-      <div className="p-4 border-t border-gray-100">
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-green-600 text-lg">🥕</span>
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-gray-900">Start your health journey</h4>
-              <p className="text-xs text-gray-600">with a FREE 1-month access to MediMeal!</p>
-            </div>
-          </div>
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">
-            Claim Now!
-          </button>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-100">
+      {/* Footer with Logout */}
+      <div className="p-4 border-t border-gray-100 flex-shrink-0">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
         >
           <LogOut className="h-5 w-5 mr-3 text-gray-400" />
           Logout

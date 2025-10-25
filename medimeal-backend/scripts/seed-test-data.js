@@ -17,7 +17,7 @@ const testUsers = [
     role: 'admin'
   },
   {
-    firstName: 'Dr. Sarah',
+    firstName: 'Sarah',
     lastName: 'Johnson',
     email: 'doctor@test.com',
     password: 'Doctor123!',
@@ -38,7 +38,7 @@ const testUsers = [
     }
   },
   {
-    firstName: 'Dr. Michael',
+    firstName: 'Michael',
     lastName: 'Brown',
     email: 'doctor2@test.com',
     password: 'Doctor123!',
@@ -282,6 +282,7 @@ if (require.main === module) {
 }
 
 module.exports = { seedDatabase };
+
 
 
 

@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import axios from 'axios'
 import { 
   Search,
-  ChevronLeft
+  Heart
 } from 'lucide-react'
 
 // Import components
@@ -51,11 +51,10 @@ const DoctorDashboard = () => {
         <div className="p-6">
           {/* Logo */}
           <div className="flex items-center mb-8">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-white font-bold text-sm">M</span>
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+              <Heart className="w-5 h-5 text-white fill-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">Mediczen™</span>
-            <ChevronLeft className="w-4 h-4 text-gray-400 ml-2" />
+            <span className="text-xl font-bold text-gray-900">MediMeal</span>
           </div>
 
           {/* Search */}

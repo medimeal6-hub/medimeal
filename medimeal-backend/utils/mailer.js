@@ -4,17 +4,28 @@ let transporter
 
 function getTransporter() {
   if (transporter) return transporter
-  const { EMAIL_HOST, EMAIL_PORT, EMAIL_SECURE, EMAIL_USER, EMAIL_PASS, EMAIL_FROM } = process.env
+  
+  // Use live Gmail SMTP configuration
+  const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com'
+  const EMAIL_PORT = process.env.EMAIL_PORT || 587
+  const EMAIL_SECURE = process.env.EMAIL_SECURE || 'false'
+  const EMAIL_USER = process.env.EMAIL_USER || 'medimeal6@gmail.com'
+  const EMAIL_PASS = process.env.EMAIL_PASS || 'dnqn nkxy rqrm hrhc'
+  const EMAIL_FROM = process.env.EMAIL_FROM || 'MediMeal <noreply@medimeal.com>'
+  
   if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS || !EMAIL_FROM) {
     console.warn('Email disabled: missing email envs (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM)')
     return null
   }
+  
   transporter = nodemailer.createTransport({
     host: EMAIL_HOST,
     port: Number(EMAIL_PORT),
-    secure: String(EMAIL_SECURE || 'false') === 'true',
+    secure: String(EMAIL_SECURE) === 'true',
     auth: { user: EMAIL_USER, pass: EMAIL_PASS }
   })
+  
+  console.log('📧 Gmail SMTP configured:', EMAIL_USER)
   return transporter
 }
 
@@ -206,4 +217,76 @@ function getDeviceType() {
   return 'Computer or Mobile Device'
 }
 
-module.exports = { sendMail, sendPasswordResetEmail, sendWelcomeEmail, sendLoginNotificationEmail }
+async function sendMedicationReminderEmail(email, firstName, medicationName, dosage, scheduledTime) {
+  const subject = `💊 Medication Reminder - ${medicationName}`
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Medication Reminder - MediMeal</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #FF6B6B 0%, #EE5A24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #FF6B6B; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .reminder-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .medication-info { background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💊 Medication Reminder</h1>
+          <p>MediMeal - Your Health Companion</p>
+        </div>
+        <div class="content">
+          <h2>Hello ${firstName}!</h2>
+          <p>It's time to take your medication as scheduled.</p>
+          
+          <div class="medication-info">
+            <strong>📋 Medication Details:</strong>
+            <ul>
+              <li><strong>Medication:</strong> ${medicationName}</li>
+              <li><strong>Dosage:</strong> ${dosage}</li>
+              <li><strong>Scheduled Time:</strong> ${scheduledTime}</li>
+              <li><strong>Current Time:</strong> ${new Date().toLocaleString()}</li>
+            </ul>
+          </div>
+          
+          <div class="reminder-box">
+            <strong>⚠️ Important Reminders:</strong>
+            <ul>
+              <li>Take your medication as prescribed by your doctor</li>
+              <li>Follow the correct timing for optimal effectiveness</li>
+              <li>Check for any food interactions before eating</li>
+              <li>Contact your doctor if you experience any side effects</li>
+            </ul>
+          </div>
+          
+          <p>Remember to log this medication in your MediMeal app to track your adherence.</p>
+          
+          <p>If you have any questions about your medication, please consult with your healthcare provider.</p>
+        </div>
+        <div class="footer">
+          <p>This is an automated reminder from MediMeal.</p>
+          <p>© 2024 MediMeal. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+  
+  return await sendMail({ to: email, subject, html })
+}
+
+module.exports = { 
+  sendMail, 
+  sendPasswordResetEmail, 
+  sendWelcomeEmail, 
+  sendLoginNotificationEmail,
+  sendMedicationReminderEmail 
+}

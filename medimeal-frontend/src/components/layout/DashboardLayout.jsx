@@ -30,23 +30,23 @@ const DashboardLayout = () => {
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex h-screen">
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block w-64 flex-shrink-0 bg-white border-r border-gray-200 fixed lg:relative z-50 h-full lg:h-auto`}>
+        <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block w-64 flex-shrink-0 bg-white border-r border-gray-200 fixed lg:relative z-50 h-screen`}>
           <Sidebar />
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Navbar */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:block flex-shrink-0">
             <TopNavbar 
               currentPath={location.pathname}
             />
           </div>
           
           {/* Content Area */}
-          <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
+          <main className="flex-1 p-4 lg:p-8 overflow-y-auto bg-gray-50">
             <Outlet />
           </main>
         </div>

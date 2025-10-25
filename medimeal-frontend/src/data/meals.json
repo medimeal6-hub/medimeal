@@ -14,7 +14,9 @@
     "healthScore": 85,
     "difficulty": "Easy",
     "cookDuration": "25 min",
-    "steps": 6
+    "steps": 6,
+    "unsuitableFor": ["diabetes"],
+    "containsAllergens": []
   },
   {
     "id": 2,
@@ -31,7 +33,9 @@
     "healthScore": 92,
     "difficulty": "Easy",
     "cookDuration": "5 min",
-    "steps": 3
+    "steps": 3,
+    "unsuitableFor": ["dairy-free", "diabetes"],
+    "containsAllergens": ["dairy"]
   },
   {
     "id": 3,
@@ -48,7 +52,9 @@
     "healthScore": 88,
     "difficulty": "Medium",
     "cookDuration": "30 min",
-    "steps": 8
+    "steps": 8,
+    "unsuitableFor": ["diabetes"],
+    "containsAllergens": []
   },
   {
     "id": 4,
@@ -65,7 +71,9 @@
     "healthScore": 90,
     "difficulty": "Medium",
     "cookDuration": "35 min",
-    "steps": 7
+    "steps": 7,
+    "unsuitableFor": ["diabetes"],
+    "containsAllergens": ["fish"]
   },
   {
     "id": 5,
@@ -82,7 +90,9 @@
     "healthScore": 82,
     "difficulty": "Easy",
     "cookDuration": "10 min",
-    "steps": 4
+    "steps": 4,
+    "unsuitableFor": ["diabetes"],
+    "containsAllergens": []
   },
   {
     "id": 6,
@@ -99,7 +109,9 @@
     "healthScore": 88,
     "difficulty": "Medium",
     "cookDuration": "15 min",
-    "steps": 5
+    "steps": 5,
+    "unsuitableFor": ["gluten-free"],
+    "containsAllergens": ["eggs", "gluten"]
   },
   {
     "id": 7,
@@ -116,7 +128,9 @@
     "healthScore": 85,
     "difficulty": "Easy",
     "cookDuration": "20 min",
-    "steps": 6
+    "steps": 6,
+    "unsuitableFor": ["gluten-free"],
+    "containsAllergens": ["gluten"]
   },
   {
     "id": 8,
@@ -133,7 +147,9 @@
     "healthScore": 80,
     "difficulty": "Medium",
     "cookDuration": "40 min",
-    "steps": 8
+    "steps": 8,
+    "unsuitableFor": ["gluten-free", "diabetes"],
+    "containsAllergens": ["gluten"]
   },
   {
     "id": 9,
@@ -150,6 +166,8 @@
     "healthScore": 90,
     "difficulty": "Easy",
     "cookDuration": "5 min",
-    "steps": 2
+    "steps": 2,
+    "unsuitableFor": ["dairy-free", "diabetes"],
+    "containsAllergens": ["dairy", "nuts"]
   }
 ]

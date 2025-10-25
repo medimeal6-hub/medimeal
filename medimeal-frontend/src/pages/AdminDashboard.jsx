@@ -1506,45 +1506,45 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {patientAssignments.map((assignment) => (
-                        <tr key={assignment.id} className="hover:bg-gray-50">
+                      {(patientAssignments || []).map((assignment, index) => (
+                        <tr key={assignment.id || `assignment-${index}`} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                                 <User className="w-4 h-4 text-blue-600" />
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-gray-900">{assignment.patientName}</div>
+                                <div className="text-sm font-medium text-gray-900">{assignment.patientName || 'Unknown Patient'}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{assignment.doctorName}</div>
+                            <div className="text-sm text-gray-900">{assignment.doctorName || 'Unknown Doctor'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-mono text-gray-900">{assignment.wardNumber}</span>
+                            <span className="text-sm font-mono text-gray-900">{assignment.wardNumber || 'N/A'}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              assignment.priority === 'critical' ? 'bg-red-100 text-red-800' :
-                              assignment.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                              assignment.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              (assignment.priority || 'medium') === 'critical' ? 'bg-red-100 text-red-800' :
+                              (assignment.priority || 'medium') === 'high' ? 'bg-orange-100 text-orange-800' :
+                              (assignment.priority || 'medium') === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-green-100 text-green-800'
                             }`}>
-                              {assignment.priority.charAt(0).toUpperCase() + assignment.priority.slice(1)}
+                              {(assignment.priority || 'medium').charAt(0).toUpperCase() + (assignment.priority || 'medium').slice(1)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              assignment.status === 'active' ? 'bg-green-100 text-green-800' :
-                              assignment.status === 'discharged' ? 'bg-blue-100 text-blue-800' :
+                              (assignment.status || 'active') === 'active' ? 'bg-green-100 text-green-800' :
+                              (assignment.status || 'active') === 'discharged' ? 'bg-blue-100 text-blue-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                              {(assignment.status || 'active').charAt(0).toUpperCase() + (assignment.status || 'active').slice(1)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(assignment.startDate).toLocaleDateString()}
+                            {assignment.startDate ? new Date(assignment.startDate).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center space-x-2">

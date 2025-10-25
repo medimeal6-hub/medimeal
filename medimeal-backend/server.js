@@ -47,12 +47,13 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/medimeal', {
+// Database connection with live MongoDB Atlas URI
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://medi:Siya123@cluster0.iiclpkk.mongodb.net/medimeal?';
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ MongoDB connected successfully'))
+.then(() => console.log('✅ MongoDB Atlas connected successfully'))
 .catch(err => {
   console.error('❌ MongoDB connection error:', err);
   process.exit(1);
@@ -70,6 +71,10 @@ app.use('/api/suggestions', require('./routes/suggestions'));
 app.use('/api/calendar', require('./routes/calendar'));
 // Temporary fix: also mount calendar routes directly without /api prefix
 app.use('/calendar', require('./routes/calendar'));
+app.use('/api/seed', require('./routes/seed'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/plans', require('./routes/plans'));
+app.use('/api/conflicts', require('./routes/conflicts'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

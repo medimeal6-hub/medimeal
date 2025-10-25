@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { X, User, Stethoscope, MapPin, AlertCircle } from 'lucide-react'
+import { X, User, Stethoscope, AlertCircle } from 'lucide-react'
 import axios from 'axios'
 
 const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     patientId: '',
     doctorId: '',
-    wardNumber: '',
     priority: 'medium',
     diagnosis: '',
     treatmentPlan: '',
@@ -54,7 +53,6 @@ const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
       setFormData({
         patientId: '',
         doctorId: '',
-        wardNumber: '',
         priority: 'medium',
         diagnosis: '',
         treatmentPlan: '',
@@ -154,44 +152,22 @@ const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Ward Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Ward Number
-              </label>
-              <input
-                type="text"
-                name="wardNumber"
-                value={formData.wardNumber}
-                onChange={handleChange}
-                placeholder="e.g., #123456"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              {errors.wardNumber && (
-                <p className="text-red-600 text-sm mt-1">{errors.wardNumber}</p>
-              )}
-            </div>
-
-            {/* Priority */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Priority Level
-              </label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority Level
+            </label>
+            <select
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
           </div>
 
           {/* Diagnosis */}

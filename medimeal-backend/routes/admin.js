@@ -825,18 +825,14 @@ router.post('/assign-patient', async (req, res) => {
     const { 
       patientId, 
       doctorId, 
-      wardNumber, 
-      priority = 'medium',
-      diagnosis = '',
-      treatmentPlan = '',
       notes = ''
     } = req.body;
 
     // Validation
-    if (!patientId || !doctorId || !wardNumber) {
+    if (!patientId || !doctorId) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Patient ID, Doctor ID, and Ward Number are required' 
+        message: 'Patient ID and Doctor ID are required' 
       });
     }
 
@@ -858,34 +854,45 @@ router.post('/assign-patient', async (req, res) => {
       });
     }
 
-    // Check if ward number is already assigned
-    const existingAssignment = await PatientAssignment.findOne({ wardNumber });
+    // Check if assignment already exists
+    const existingAssignment = await PatientAssignment.checkAssignment(doctorId, patientId);
     if (existingAssignment) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Ward number is already assigned' 
+        message: 'Patient is already assigned to this doctor' 
       });
     }
 
     // Create patient assignment
     const assignment = new PatientAssignment({
-      patient: patientId,
-      doctor: doctorId,
+      patientId,
+      doctorId,
       assignedBy: req.user._id,
-      wardNumber,
-      priority,
-      diagnosis,
-      treatmentPlan,
       notes
     });
 
     await assignment.save();
-    await assignment.populate('patient doctor', 'firstName lastName email specialization');
+    await assignment.populate('patientId doctorId', 'firstName lastName email specialization');
 
     res.status(201).json({ 
       success: true, 
       message: 'Patient assigned successfully', 
-      data: assignment.getSummary()
+      data: {
+        assignmentId: assignment._id,
+        patient: {
+          id: assignment.patientId._id,
+          name: `${assignment.patientId.firstName} ${assignment.patientId.lastName}`,
+          email: assignment.patientId.email
+        },
+        doctor: {
+          id: assignment.doctorId._id,
+          name: `Dr. ${assignment.doctorId.firstName} ${assignment.doctorId.lastName}`,
+          email: assignment.doctorId.email,
+          specialization: assignment.doctorId.specialization
+        },
+        assignedAt: assignment.assignmentDate,
+        status: assignment.status
+      }
     });
   } catch (error) {
     console.error('Patient assignment error:', error);
@@ -903,14 +910,14 @@ router.get('/patient-assignments', async (req, res) => {
     const { doctorId, status = 'active', page = 1, limit = 10 } = req.query;
     
     const query = {};
-    if (doctorId) query.doctor = doctorId;
+    if (doctorId) query.doctorId = doctorId;
     if (status) query.status = status;
 
     const assignments = await PatientAssignment.find(query)
-      .populate('patient', 'firstName lastName email dateOfBirth gender')
-      .populate('doctor', 'firstName lastName specialization')
+      .populate('patientId', 'firstName lastName email dateOfBirth gender')
+      .populate('doctorId', 'firstName lastName specialization')
       .populate('assignedBy', 'firstName lastName')
-      .sort({ assignedAt: -1 })
+      .sort({ assignmentDate: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
@@ -918,7 +925,28 @@ router.get('/patient-assignments', async (req, res) => {
 
     res.status(200).json({ 
       success: true, 
-      data: assignments.map(a => a.getSummary()),
+      data: assignments.map(a => ({
+        id: a._id,
+        patient: {
+          id: a.patientId._id,
+          name: `${a.patientId.firstName} ${a.patientId.lastName}`,
+          email: a.patientId.email,
+          dateOfBirth: a.patientId.dateOfBirth,
+          gender: a.patientId.gender
+        },
+        doctor: {
+          id: a.doctorId._id,
+          name: `Dr. ${a.doctorId.firstName} ${a.doctorId.lastName}`,
+          specialization: a.doctorId.specialization
+        },
+        assignedBy: {
+          id: a.assignedBy._id,
+          name: `${a.assignedBy.firstName} ${a.assignedBy.lastName}`
+        },
+        assignmentDate: a.assignmentDate,
+        status: a.status,
+        notes: a.notes
+      })),
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
