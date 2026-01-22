@@ -26,7 +26,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
 
-  const { register, loginWithGoogle, loginWithFirebase } = useAuth()
+  const { register, loginWithFirebase } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -367,26 +367,19 @@ const Register = () => {
               <button 
                 type="button"
                 onClick={async () => {
-                  console.log('🚀 Google registration button clicked')
+                  console.log('🚀 Google sign-up button clicked')
                   setLoading(true)
                   setErrors({})
                   try {
-                    console.log('📡 Calling loginWithFirebase...')
                     const result = await loginWithFirebase()
-                    console.log('📋 Firebase result:', result)
                     
-                    if (result.success && result.redirecting) {
-                      console.log('✅ Redirecting to Google OAuth...')
-                      // User will be redirected to Google, then back to our app
-                      // The AuthContext will handle the redirect result
-                    } else if (result.success && result.user) {
-                      console.log('✅ Direct registration successful, navigating to home')
-                      const destination = result.user?.role === 'admin' ? '/admin' : '/'
+                    if (result.success && result.user) {
+                      console.log('✅ Google sign-up successful')
+                      const destination = result.user?.role === 'admin' ? '/admin' : 
+                                         result.user?.role === 'doctor' ? '/doctor' : '/dashboard'
                       navigate(destination)
-                      setLoading(false)
                     } else {
-                      console.error('❌ Registration failed:', result.message)
-                      setErrors({ submit: result.message })
+                      setErrors({ submit: result.message || 'Google sign-up failed' })
                       setLoading(false)
                     }
                   } catch (e) {

@@ -25,7 +25,7 @@ const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchPatients = async () => {
     try {
-      const response = await axios.get('/api/admin/users?role=user')
+      const response = await axios.get('/admin/users?role=user')
       setPatients(response.data.data.filter(user => user.role === 'user'))
     } catch (error) {
       console.error('Error fetching patients:', error)
@@ -34,7 +34,7 @@ const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchDoctors = async () => {
     try {
-      const response = await axios.get('/api/admin/doctors')
+      const response = await axios.get('/admin/doctors')
       setDoctors(response.data.data)
     } catch (error) {
       console.error('Error fetching doctors:', error)
@@ -47,7 +47,7 @@ const PatientAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
     setErrors({})
 
     try {
-      await axios.post('/api/admin/assign-patient', formData)
+      await axios.post('/admin/assign-patient', formData)
       onSuccess()
       onClose()
       setFormData({

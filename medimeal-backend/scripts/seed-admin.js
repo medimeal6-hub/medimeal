@@ -11,25 +11,31 @@ const User = require('../models/User');
   try {
     await connectDB();
 
-    const email = process.env.ADMIN_EMAIL || 'admin@medimeal.com';
-    const password = process.env.ADMIN_PASSWORD || 'Admin123'; // meets model: upper, lower, number, >=6
+    const email = 'admin@medimeal.com';
+    const password = 'medi123';
 
-    let user = await User.findByEmail(email);
+    let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (user) {
-      if (user.role !== 'admin') {
+      // Check if password needs to be updated
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid || user.role !== 'admin') {
         user.role = 'admin';
+        user.password = password; // Will be hashed by pre-save hook
+        user.isActive = true;
+        user.emailVerified = true;
         await user.save();
-        console.log('✅ Existing user promoted to admin:', email);
+        console.log('✅ Admin user updated with correct credentials:', email);
       } else {
-        console.log('ℹ️ Admin already exists:', email);
+        console.log('ℹ️ Admin already exists with correct credentials:', email);
       }
     } else {
       user = new User({
         firstName: 'Admin',
         lastName: 'User',
-        email,
+        email: email.toLowerCase(),
         password,
         role: 'admin',
+        isActive: true,
         emailVerified: true
       });
       await user.save();

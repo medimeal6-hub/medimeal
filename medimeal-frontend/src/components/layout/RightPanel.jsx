@@ -1,15 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { User, TrendingUp, Clock, Star, Plus, Bell } from 'lucide-react'
 import mealsData from '../../data/meals.json'
 import ImagePlaceholder from '../ImagePlaceholder'
+import axios from 'axios'
 
 const RightPanel = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [recommendedMeals] = useState(mealsData.slice(0, 3))
+  const [recommendedMeals, setRecommendedMeals] = useState([])
   const [popularMeals] = useState(mealsData.slice(3, 6))
+
+  // Load KNN-based recommendations
+  useEffect(() => {
+    let isMounted = true
+    const loadRecommendations = async () => {
+      try {
+        // axios baseURL and Authorization header are configured in AuthContext
+        const res = await axios.get('/recommendations/knn')
+        const data = res?.data?.data
+        if (!data) return
+
+        // Flatten top items across meal types and take first 3 for the panel
+        const flat = [
+          ...(data.recommendations?.breakfast || []),
+          ...(data.recommendations?.lunch || []),
+          ...(data.recommendations?.dinner || []),
+          ...(data.recommendations?.snack || [])
+        ]
+
+        if (isMounted) setRecommendedMeals(flat.slice(0, 3))
+      } catch (err) {
+        // Silently fall back (keep panel functional)
+        // console.error('Failed to load recommendations', err)
+      }
+    }
+
+    if (user) loadRecommendations()
+    return () => { isMounted = false }
+  }, [user])
 
   const handleAddToMealPlan = (mealId) => {
     console.log('Adding meal to plan:', mealId)
@@ -122,7 +152,7 @@ const RightPanel = () => {
         <h4 className="font-semibold text-gray-900 mb-4 text-sm">Recommended Menu</h4>
         <div className="space-y-3">
           {recommendedMeals.map((meal, index) => (
-            <div key={meal.id} className="flex items-center space-x-3">
+            <div key={meal.id || meal.name} className="flex items-center space-x-3">
               <ImagePlaceholder 
                 width={32}
                 height={32}
@@ -139,12 +169,14 @@ const RightPanel = () => {
                   <span>{meal.type}</span>
                   <span>•</span>
                   <span>{meal.calories} kcal</span>
-                  <span>•</span>
-                  <span>{meal.protein}g P</span>
+                  {meal.protein ? (<>
+                    <span>•</span>
+                    <span>{meal.protein}g P</span>
+                  </>) : null}
                 </div>
               </div>
               <button 
-                onClick={() => handleAddToMealPlan(meal.id)}
+                onClick={() => handleAddToMealPlan(meal.id || meal.name)}
                 className="p-1 rounded-md hover:bg-gray-50"
               >
                 <Plus className="h-3 w-3 text-green-600" />

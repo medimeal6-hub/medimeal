@@ -288,3 +288,5 @@ The enhanced MediMeal platform is now a fully connected, real-data ecosystem wit
 - **Automated reminder system**
 
 **Start the system and test with the provided demo credentials!**
+
+

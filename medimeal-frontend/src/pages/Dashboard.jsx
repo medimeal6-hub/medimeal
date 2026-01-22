@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearch } from '../contexts/SearchContext'
 import axios from 'axios'
 import { 
   Heart, 
@@ -14,7 +15,8 @@ import {
   CheckCircle,
   Plus,
   Trash2,
-  X
+  X,
+  Sparkles
 } from 'lucide-react'
 import mealsData from '../data/meals.json'
 import ImagePlaceholder from '../components/ImagePlaceholder'
@@ -23,6 +25,8 @@ import { getMealImage, getMealTypeColor } from '../utils/mealImages'
 const Dashboard = () => {
   const { user, updateUserData } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { searchQuery, updateSearch } = useSearch()
   const [featuredMeal] = useState(mealsData[0])
   const [allMeals, setAllMeals] = useState(mealsData)
   const [removedMeals, setRemovedMeals] = useState(new Set())
@@ -32,6 +36,8 @@ const Dashboard = () => {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(null)
   const [showHealthSurvey, setShowHealthSurvey] = useState(false)
   const [filteredMeals, setFilteredMeals] = useState(mealsData)
+  const [personalizedRecommendations, setPersonalizedRecommendations] = useState(null)
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   const [surveyFormData, setSurveyFormData] = useState({
     hasPressure: false,
     hasSugar: false,
@@ -106,6 +112,14 @@ const Dashboard = () => {
     })
   }
 
+  // Handle search query from URL and sync with context
+  useEffect(() => {
+    const search = searchParams.get('search')
+    if (search) {
+      updateSearch(search)
+    }
+  }, [searchParams, updateSearch])
+
   // Show health survey on every visit
   useEffect(() => {
     if (user) {
@@ -130,35 +144,93 @@ const Dashboard = () => {
     }
   }, [user])
 
-  // Filter meals based on user's health conditions
+  // Load personalized recommendations based on user preferences
   useEffect(() => {
-    if (!user || !user.surveyData) {
-      setFilteredMeals(mealsData)
-      return
+    const loadPersonalizedRecommendations = async () => {
+      if (!user || !user.surveyData) {
+        setFilteredMeals(mealsData)
+        return
+      }
+
+      try {
+        setRecommendationsLoading(true)
+        
+        // Try to get KNN recommendations first
+        try {
+          const knnResponse = await axios.get('/recommendations/knn-python')
+          if (knnResponse.data.success) {
+            const knnData = knnResponse.data.data
+            // Flatten recommendations from all meal types
+            const allRecommendations = [
+              ...(knnData.recommendations?.breakfast || []),
+              ...(knnData.recommendations?.lunch || []),
+              ...(knnData.recommendations?.dinner || []),
+              ...(knnData.recommendations?.snack || [])
+            ]
+            
+            // Convert KNN format to meal format for display
+            const formattedMeals = allRecommendations.map(rec => ({
+              id: rec.name.toLowerCase().replace(/\s+/g, '-'),
+              name: rec.name,
+              type: rec.type,
+              calories: rec.calories,
+              protein: Math.round(rec.calories * 0.15), // Estimate protein
+              carbs: Math.round(rec.calories * 0.5), // Estimate carbs
+              fats: Math.round(rec.calories * 0.35), // Estimate fats
+              rating: 4.5, // Default rating
+              healthScore: Math.round(rec.similarity_score * 100), // Use similarity as health score
+              difficulty: 'Easy',
+              cookDuration: '15-30 min',
+              steps: 5,
+              reviews: 25,
+              tags: rec.tags || [],
+              allergens: rec.allergens || [],
+              similarity_score: rec.similarity_score,
+              rank: rec.rank
+            }))
+            
+            setPersonalizedRecommendations(formattedMeals)
+            setFilteredMeals(formattedMeals)
+            return
+          }
+        } catch (knnError) {
+          console.log('KNN recommendations not available, falling back to heuristic filtering')
+        }
+
+        // Fallback to original heuristic filtering
+        const healthConditions = user.surveyData.medicalConditions || []
+        const allergies = user.surveyData.allergies || []
+
+        let filtered = mealsData.filter(meal => {
+          // Check if meal is suitable for all health conditions
+          for (const condition of healthConditions) {
+            if (meal.unsuitableFor && meal.unsuitableFor.includes(condition)) {
+              return false
+            }
+          }
+
+          // Check allergies
+          for (const allergy of allergies) {
+            if (meal.containsAllergens && meal.containsAllergens.includes(allergy.toLowerCase())) {
+              return false
+            }
+          }
+
+          return true
+        })
+
+        setFilteredMeals(filtered)
+        setPersonalizedRecommendations(null)
+        
+      } catch (error) {
+        console.error('Error loading personalized recommendations:', error)
+        setFilteredMeals(mealsData)
+      } finally {
+        setRecommendationsLoading(false)
+      }
     }
 
-    const healthConditions = user.surveyData.medicalConditions || []
-    const allergies = user.surveyData.allergies || []
-
-    let filtered = mealsData.filter(meal => {
-      // Check if meal is suitable for all health conditions
-      for (const condition of healthConditions) {
-        if (meal.unsuitableFor && meal.unsuitableFor.includes(condition)) {
-          return false
-        }
-      }
-
-      // Check allergies
-      for (const allergy of allergies) {
-        if (meal.containsAllergens && meal.containsAllergens.includes(allergy.toLowerCase())) {
-          return false
-        }
-      }
-
-      return true
-    })
-
-    setFilteredMeals(filtered)
+    loadPersonalizedRecommendations()
   }, [user])
 
   // Handle keyboard events for confirmation dialog
@@ -219,7 +291,7 @@ const Dashboard = () => {
         }
       }
 
-      const response = await axios.put(`/api/users/${user._id}`, surveyUpdate)
+      const response = await axios.put(`/users/${user._id}`, surveyUpdate)
       
       if (response.data.success) {
         updateUserData(response.data.data)
@@ -265,7 +337,7 @@ const Dashboard = () => {
     navigate('/meals?filter=true')
   }
 
-  // Filter meals based on active tab and removed meals
+  // Filter meals based on active tab, removed meals, and search query
   const getFilteredMeals = () => {
     // Start with health-filtered meals
     let filtered = filteredMeals.filter(meal => !removedMeals.has(meal.id))
@@ -273,6 +345,16 @@ const Dashboard = () => {
     // Then filter by meal type
     if (activeTab !== 'All') {
       filtered = filtered.filter(meal => meal.type === activeTab)
+    }
+    
+    // Then filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(meal => 
+        meal.name.toLowerCase().includes(query) ||
+        meal.description.toLowerCase().includes(query) ||
+        meal.type.toLowerCase().includes(query)
+      )
     }
     
     return filtered
@@ -294,8 +376,10 @@ const Dashboard = () => {
     }
   }
 
-  // Get the final processed meals
-  const processedMeals = getSortedMeals(getFilteredMeals())
+  // Get the final processed meals with memoization for performance
+  const processedMeals = useMemo(() => {
+    return getSortedMeals(getFilteredMeals())
+  }, [searchQuery, activeTab, sortBy, filteredMeals, removedMeals])
 
   const healthConditions = [
     { key: 'hasPressure', label: 'High Blood Pressure', description: 'Meals low in sodium and healthy fats' },
@@ -311,6 +395,20 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Recommendations CTA */}
+      <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl text-white p-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold mb-1">Personalized Recommendations</h2>
+          <p className="text-sm text-emerald-50">See meals tailored to your health profile and calorie target.</p>
+        </div>
+        <button
+          onClick={() => navigate('/dashboard/recommendations')}
+          className="inline-flex items-center bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+        >
+          <Sparkles className="h-4 w-4 mr-2" />
+          View Recommendations
+        </button>
+      </div>
       {/* Health Survey Section - Top of Dashboard */}
       {showHealthSurvey && (
         <div className="bg-gradient-to-br from-white via-green-50/30 to-blue-50/30 rounded-2xl border border-green-200/50 shadow-lg backdrop-blur-sm">
@@ -564,20 +662,128 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Personalized Recommendations Section */}
+      {personalizedRecommendations && (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+                Personalized Recommendations
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                AI-powered meal suggestions based on your health profile and preferences
+                {user?.surveyData?.medicalConditions?.length > 0 && (
+                  <span className="ml-2 text-green-600 font-medium">
+                    ✓ Tailored to your health conditions
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="text-xs text-gray-500 bg-purple-50 px-2 py-1 rounded">
+                Powered by KNN
+              </div>
+            </div>
+          </div>
+          
+          {recommendationsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
+                  <div className="h-[160px] bg-gray-200"></div>
+                  <div className="p-4">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {personalizedRecommendations.slice(0, 6).map((meal, index) => (
+                <div key={meal.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <img 
+                    src={getMealImage(meal)}
+                    alt={meal.name}
+                    className="w-full h-[160px] object-cover"
+                  />
+                  
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                        {meal.name}
+                      </h4>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center text-purple-600">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          <span className="text-xs font-medium">{meal.healthScore}/100</span>
+                        </div>
+                        <div className="text-xs text-gray-500 bg-purple-50 px-1 py-0.5 rounded">
+                          #{meal.rank}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 mb-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMealTypeColor(meal.type)}`}>
+                        {meal.type}
+                      </span>
+                      <span className="text-xs text-gray-600">{meal.difficulty}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+                      <span>{meal.calories} kcal</span>
+                      <span>{meal.protein}g protein</span>
+                      <span>{meal.carbs}g carbs</span>
+                      <span>{meal.fats}g fats</span>
+                    </div>
+
+                    {meal.tags && meal.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {meal.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => handleAddToMealPlan(meal.id)}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      Add to Meal Plan
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* All Menu Section */}
       <div>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">All Menu</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {personalizedRecommendations ? 'More Options' : 'All Menu'}
+            </h2>
             <p className="text-sm text-gray-600 mt-1">
               Showing {processedMeals.length} meal{processedMeals.length !== 1 ? 's' : ''}
               {activeTab !== 'All' && ` in ${activeTab}`}
+              {searchQuery && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  for "{searchQuery}"
+                </span>
+              )}
               {removedMeals.size > 0 && (
                 <span className="ml-2 text-orange-600">
                   ({removedMeals.size} removed)
                 </span>
               )}
-              {user?.surveyData?.medicalConditions?.length > 0 && (
+              {user?.surveyData?.medicalConditions?.length > 0 && !personalizedRecommendations && (
                 <span className="ml-2 text-green-600 font-medium">
                   ✓ Filtered by your health conditions
                 </span>

@@ -81,3 +81,5 @@ foodDrugConflictSchema.statics.getConflictsForMedicine = function(medicineName) 
 };
 
 module.exports = mongoose.model('FoodDrugConflict', foodDrugConflictSchema);
+
+

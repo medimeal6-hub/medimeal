@@ -11,15 +11,15 @@ import DoctorDashboard from './pages/DoctorDashboard'
 import HealthyMenu from './pages/HealthyMenu'
 import Calendar from './pages/Calendar'
 import MealPlan from './pages/MealPlan'
-import FoodDiary from './pages/FoodDiary'
 import Progress from './pages/Progress'
 import Exercises from './pages/Exercises'
 import Insights from './pages/Insights'
 import PrescriptionUpload from './pages/PrescriptionUpload'
 import Meals from './pages/Meals'
+import Recommendations from './pages/Recommendations'
 import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
-import Medications from './pages/Medications'
+import UserAppointments from './pages/UserAppointments'
 import DashboardLayout from './components/layout/DashboardLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import RedirectHandler from './components/RedirectHandler'
@@ -64,10 +64,11 @@ function App() {
                 }
               >
                 <Route index element={<Dashboard />} />
+                <Route path="recommendations" element={<Recommendations />} />
                 <Route path="healthy-menu" element={<HealthyMenu />} />
                 <Route path="prescription" element={<PrescriptionUpload />} />
-                <Route path="medications" element={<Medications />} />
                 <Route path="meals" element={<Meals />} />
+                <Route path="appointments" element={<UserAppointments />} />
                 <Route path="alerts" element={<Alerts />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
@@ -94,18 +95,6 @@ function App() {
                 }
               >
                 <Route index element={<MealPlan />} />
-              </Route>
-              
-              {/* Food Diary Route */}
-              <Route 
-                path="/food-diary" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<FoodDiary />} />
               </Route>
               
               {/* Progress Route */}
@@ -154,17 +143,6 @@ function App() {
                 }
               >
                 <Route index element={<PrescriptionUpload />} />
-              </Route>
-              
-              <Route 
-                path="/medications" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Medications />} />
               </Route>
               
               <Route 

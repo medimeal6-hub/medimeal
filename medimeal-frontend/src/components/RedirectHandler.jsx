@@ -20,15 +20,8 @@ const RedirectHandler = () => {
     })
     
     // Only redirect if we have a redirect destination, user is authenticated, not loading, and haven't redirected yet
-    // Don't redirect if user is trying to access login/register pages directly
+    // Allow redirects even from login/register pages (needed for Google sign-in redirect flow)
     if (redirectAfterAuth && isAuthenticated && !loading && user && !hasRedirected.current) {
-      // Skip redirect if user is on login/register pages (let them stay there)
-      if (location.pathname === '/login' || location.pathname === '/register') {
-        console.log('🚫 User is on auth page, skipping redirect')
-        setRedirectAfterAuth(null) // Clear the redirect
-        return
-      }
-      
       console.log('🚀 RedirectHandler: Navigating to:', redirectAfterAuth)
       hasRedirected.current = true
       
@@ -38,22 +31,12 @@ const RedirectHandler = () => {
         setRedirectTimeout(null)
       }
       
+      // Use the destination that was already set in AuthContext
+      const destination = redirectAfterAuth
+      console.log('🎯 Redirecting to destination:', destination)
+      console.log('👤 User role:', user.role)
+      
       setRedirectAfterAuth(null) // Clear the redirect
-      
-      // Direct users to appropriate destination
-      let destination = redirectAfterAuth
-      if (user.role === 'admin') {
-        destination = '/admin'
-        console.log('👑 Admin user, redirecting to admin dashboard:', destination)
-      } else if (user.role === 'doctor') {
-        destination = '/doctor'
-        console.log('👨‍⚕️ Doctor user, redirecting to doctor dashboard:', destination)
-      } else {
-        destination = '/dashboard'
-        console.log('👤 Regular user, redirecting to dashboard:', destination)
-      }
-      
-      console.log('🎯 Final destination:', destination)
       
       // Use setTimeout to ensure the state update completes before navigation
       setTimeout(() => {

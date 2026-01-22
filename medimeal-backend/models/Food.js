@@ -180,3 +180,5 @@ foodSchema.statics.search = function(query) {
 };
 
 module.exports = mongoose.model('Food', foodSchema);
+
+

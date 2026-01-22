@@ -40,6 +40,11 @@ const Progress = () => {
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false)
   const [viewMode, setViewMode] = useState('chart') // chart, table, summary
+  
+  // Form state for Add Metric Modal
+  const [newMetricType, setNewMetricType] = useState('weight')
+  const [newMetricValue, setNewMetricValue] = useState('')
+  const [newMetricDate, setNewMetricDate] = useState(new Date().toISOString().split('T')[0])
 
   // Progress data state
   const [progressData, setProgressData] = useState(() => {
@@ -172,16 +177,37 @@ const Progress = () => {
 
   // Add new metric entry
   const handleAddMetric = useCallback((metric, value, date = new Date()) => {
-    const dateKey = date.toISOString().split('T')[0]
+    const dateKey = typeof date === 'string' ? date : date.toISOString().split('T')[0]
     setProgressData(prev => ({
       ...prev,
       [dateKey]: {
-        ...prev[dateKey],
-        [metric]: value
+        ...prev[dateKey] || {
+          weight: 70,
+          bodyFat: 15,
+          muscleMass: 35,
+          waterPercentage: 55,
+          calories: 1800,
+          steps: 8000,
+          sleep: 7,
+          mood: 3,
+          energy: 3,
+          stress: 3
+        },
+        [metric]: parseFloat(value)
       }
     }))
     setShowAddMetricModal(false)
+    setNewMetricValue('')
   }, [])
+  
+  // Handle Add Metric form submission
+  const handleAddMetricSubmit = useCallback(() => {
+    if (!newMetricValue) return
+    
+    handleAddMetric(newMetricType, newMetricValue, newMetricDate)
+    setNewMetricValue('')
+    setNewMetricDate(new Date().toISOString().split('T')[0])
+  }, [newMetricType, newMetricValue, newMetricDate, handleAddMetric])
 
   // Add new goal
   const handleAddGoal = useCallback((goalData) => {
@@ -498,7 +524,11 @@ const Progress = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Metric Type
                 </label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
+                <select 
+                  value={newMetricType}
+                  onChange={(e) => setNewMetricType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                >
                   {['weight', 'bodyFat', 'muscleMass', 'waterPercentage', 'calories', 'steps', 'sleep', 'mood', 'energy', 'stress'].map(metric => {
                     const info = getMetricInfo(metric)
                     return (
@@ -517,6 +547,8 @@ const Progress = () => {
                 <input
                   type="number"
                   step="0.1"
+                  value={newMetricValue}
+                  onChange={(e) => setNewMetricValue(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                   placeholder="Enter value"
                 />
@@ -528,21 +560,27 @@ const Progress = () => {
                 </label>
                 <input
                   type="date"
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  value={newMetricDate}
+                  onChange={(e) => setNewMetricDate(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                 />
               </div>
 
               <div className="flex space-x-3 pt-4">
                 <button
-                  onClick={() => setShowAddMetricModal(false)}
+                  onClick={() => {
+                    setShowAddMetricModal(false)
+                    setNewMetricValue('')
+                    setNewMetricDate(new Date().toISOString().split('T')[0])
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => setShowAddMetricModal(false)}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  onClick={handleAddMetricSubmit}
+                  disabled={!newMetricValue}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Entry
                 </button>

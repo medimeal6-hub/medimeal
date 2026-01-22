@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 import { 
   Heart, 
   Shield, 
@@ -17,6 +18,85 @@ import {
 
 const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [stats, setStats] = useState({
+    mealPlansCreated: 0,
+    successRate: 0,
+    healthcarePartners: 0,
+    expertSupport: '24/7'
+  })
+  const [displayStats, setDisplayStats] = useState({
+    mealPlansCreated: 0,
+    successRate: 0,
+    healthcarePartners: 0
+  })
+
+  // Fetch statistics from backend (real-time updates every 5 seconds)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get('/analytics/public')
+        if (response.data.success) {
+          setStats(response.data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+        // Use fallback values
+        setStats({
+          mealPlansCreated: 50000,
+          successRate: 98,
+          healthcarePartners: 500,
+          expertSupport: '24/7'
+        })
+      }
+    }
+
+    // Fetch immediately
+    fetchStats()
+    
+    // Set up interval to fetch every 5 seconds for real-time updates
+    const intervalId = setInterval(fetchStats, 5000)
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId)
+  }, [])
+
+  // Animate count-up effect with smooth real-time transitions
+  useEffect(() => {
+    const duration = 1000 // 1 second for smooth transitions
+    const steps = 30
+
+    const updateCount = (start, end, setter) => {
+      let current = start
+      const increment = (end - start) / steps
+      const timer = setInterval(() => {
+        current += increment
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+          setter(end)
+          clearInterval(timer)
+        } else {
+          setter(Math.floor(current))
+        }
+      }, duration / steps)
+      return timer
+    }
+
+    // Only animate if there's a change in values
+    const timers = [
+      updateCount(displayStats.mealPlansCreated, stats.mealPlansCreated, (val) => 
+        setDisplayStats(prev => ({ ...prev, mealPlansCreated: val }))
+      ),
+      updateCount(displayStats.successRate, stats.successRate, (val) => 
+        setDisplayStats(prev => ({ ...prev, successRate: val }))
+      ),
+      updateCount(displayStats.healthcarePartners, stats.healthcarePartners, (val) => 
+        setDisplayStats(prev => ({ ...prev, healthcarePartners: val }))
+      )
+    ]
+
+    return () => {
+      timers.forEach(timer => clearInterval(timer))
+    }
+  }, [stats, displayStats])
 
   return (
     <div className="min-h-screen relative">
@@ -137,19 +217,27 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-blue-600 mb-2">50K+</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">
+                {displayStats.mealPlansCreated >= 1000 
+                  ? `${(displayStats.mealPlansCreated / 1000).toFixed(0)}K+`
+                  : `${displayStats.mealPlansCreated}+`}
+              </div>
               <div className="text-gray-600 font-medium">Meal Plans Created</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-green-600 mb-2">98%</div>
+              <div className="text-3xl font-bold text-green-600 mb-2">{displayStats.successRate}%</div>
               <div className="text-gray-600 font-medium">Success Rate</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-purple-600 mb-2">500+</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                {displayStats.healthcarePartners >= 100 
+                  ? `${Math.floor(displayStats.healthcarePartners / 100) * 100}+`
+                  : `${displayStats.healthcarePartners}+`}
+              </div>
               <div className="text-gray-600 font-medium">Healthcare Partners</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-orange-600 mb-2">24/7</div>
+              <div className="text-3xl font-bold text-orange-600 mb-2">{stats.expertSupport}</div>
               <div className="text-gray-600 font-medium">Expert Support</div>
             </div>
           </div>

@@ -7,6 +7,17 @@ const appointmentSchema = new mongoose.Schema({
     required: [true, 'User ID is required'],
     index: true
   },
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Doctor ID is required'],
+    index: true
+  },
+  consultationFee: {
+    type: Number,
+    min: [0, 'Consultation fee cannot be negative'],
+    default: 0
+  },
   // Healthcare provider information
   provider: {
     name: {
@@ -98,8 +109,8 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show', 'rescheduled'],
-    default: 'scheduled',
+    enum: ['REQUESTED', 'APPROVED', 'REJECTED', 'PAYMENT_PENDING', 'PAID', 'requested', 'scheduled', 'confirmed', 'approved', 'paid', 'completed', 'cancelled', 'no-show', 'rescheduled'], // Support both old and new enums
+    default: 'REQUESTED',
     index: true
   },
   priority: {

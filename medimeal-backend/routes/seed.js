@@ -598,4 +598,63 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// POST /api/seed/admin - Create/Update admin user with specific credentials
+router.post('/admin', async (req, res) => {
+  try {
+    const email = 'admin@medimeal.com';
+    const password = 'medi123';
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (user) {
+      // Update existing user to admin role and set password
+      user.role = 'admin';
+      user.password = password; // Will be hashed by pre-save hook
+      user.isActive = true;
+      user.emailVerified = true;
+      await user.save();
+      
+      return res.json({
+        success: true,
+        message: 'Admin user updated successfully',
+        data: {
+          email: user.email,
+          role: user.role,
+          updated: true
+        }
+      });
+    } else {
+      // Create new admin user
+      user = new User({
+        firstName: 'Admin',
+        lastName: 'User',
+        email: email.toLowerCase(),
+        password: password, // Will be hashed by pre-save hook
+        role: 'admin',
+        isActive: true,
+        emailVerified: true
+      });
+      
+      await user.save();
+      
+      return res.json({
+        success: true,
+        message: 'Admin user created successfully',
+        data: {
+          email: user.email,
+          role: user.role,
+          created: true
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Seed admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create/update admin user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;

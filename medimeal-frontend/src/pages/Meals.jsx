@@ -650,17 +650,6 @@ const Meals = () => {
                       <span className="text-xs text-gray-600">{meal.difficulty}</span>
                     </div>
 
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center text-green-600">
-                        <Heart className="h-3 w-3 mr-1" />
-                        <span className="text-xs font-medium">{meal.healthScore}/100</span>
-                      </div>
-                      <div className="flex items-center text-yellow-500">
-                        <Star className="h-3 w-3 mr-1 fill-current" />
-                        <span className="text-xs">{meal.rating}</span>
-                      </div>
-                    </div>
-
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
                       <span>{meal.calories} kcal</span>
                       <span>{meal.protein}g protein</span>
@@ -739,14 +728,6 @@ const Meals = () => {
                         {meal.type}
                       </span>
                       <span>{meal.difficulty}</span>
-                      <div className="flex items-center text-green-600">
-                        <Heart className="h-3 w-3 mr-1" />
-                        <span className="text-xs font-medium">{meal.healthScore}/100</span>
-                      </div>
-                      <div className="flex items-center text-yellow-500">
-                        <Star className="h-3 w-3 mr-1 fill-current" />
-                        <span className="text-xs">{meal.rating}</span>
-                      </div>
                     </div>
 
                     <div className="flex items-center space-x-4 text-xs text-gray-600">

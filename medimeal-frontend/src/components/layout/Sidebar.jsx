@@ -12,8 +12,9 @@ import {
   Settings, 
   LogOut,
   Heart,
-  Leaf,
-  Pill
+  Sparkles,
+  Upload,
+  CalendarClock
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -23,10 +24,11 @@ const Sidebar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarClock },
     { name: 'Healthy Menu', href: '/meals', icon: Utensils },
+    { name: 'Recommendations', href: '/dashboard/recommendations', icon: Sparkles },
+    { name: 'Prescription OCR', href: '/dashboard/prescription', icon: Upload },
     { name: 'Meal Plan', href: '/meal-plan', icon: BookOpen },
-    { name: 'Food Diary', href: '/food-diary', icon: BookOpen },
-    { name: 'Medications', href: '/medications', icon: Pill },
     { name: 'Progress', href: '/progress', icon: BarChart3 },
     { name: 'Exercises', href: '/exercises', icon: Dumbbell },
     { name: 'Insights', href: '/insights', icon: Brain },

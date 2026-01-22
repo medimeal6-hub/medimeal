@@ -89,3 +89,5 @@ medicineSchema.statics.search = function(query) {
 };
 
 module.exports = mongoose.model('Medicine', medicineSchema);
+
+

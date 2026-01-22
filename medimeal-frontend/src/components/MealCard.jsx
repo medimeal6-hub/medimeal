@@ -67,10 +67,6 @@ const MealCard = memo(({
             <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
               {meal.name}
             </h4>
-            <div className="flex items-center text-green-600 ml-2">
-              <Heart className="h-3 w-3 mr-1" />
-              <span className="text-xs font-medium">{meal.healthScore}/100</span>
-            </div>
           </div>
 
           <div className="flex items-center space-x-2 mb-3">
@@ -87,14 +83,10 @@ const MealCard = memo(({
             <span>{meal.fats}g fats</span>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+          <div className="flex items-center justify-start text-xs text-gray-600 mb-3">
             <div className="flex items-center">
               <Clock className="h-3 w-3 mr-1" />
               <span>{meal.cookDuration}</span>
-            </div>
-            <div className="flex items-center">
-              <Star className="h-3 w-3 mr-1 text-yellow-500 fill-current" />
-              <span>{meal.rating}/5</span>
             </div>
           </div>
 
@@ -142,18 +134,10 @@ const MealCard = memo(({
                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getMealTypeColor(meal.type)}`}>
                   {meal.type}
                 </span>
-                <div className="flex items-center text-yellow-500">
-                  <Star className="h-4 w-4 fill-current mr-1" />
-                  <span className="text-sm font-medium">{meal.rating}/5 ({meal.reviews} reviews)</span>
-                </div>
                 <span className="text-sm text-gray-600">{meal.difficulty}</span>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="flex items-center text-green-600">
-                <Heart className="h-5 w-5 mr-2" />
-                <span className="text-lg font-bold">{meal.healthScore}/100</span>
-              </div>
               <button
                 onClick={() => onAddToFavorites(meal.id)}
                 className="p-2 text-gray-400 hover:text-red-500 transition-colors"

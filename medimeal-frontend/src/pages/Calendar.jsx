@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, CheckCircle, Circle, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { useNotifications } from '../contexts/NotificationContext';
 import calendarService from '../services/calendarService';
+import TimePicker from '../components/TimePicker';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -15,6 +17,8 @@ const Calendar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState(null);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  
+  const { checkForEventNotifications, addNotification } = useNotifications();
 
   // Calendar navigation
   const navigateMonth = (direction) => {
@@ -517,14 +521,54 @@ const AddEventModal = ({ onClose, onEventAdded }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { addNotification } = useNotifications();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // Validate that the date is not in the past
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      setError('Cannot create events in the past. Please select today or a future date.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await calendarService.createEvent(formData);
+      const response = await calendarService.createEvent(formData);
+      const newEvent = response.data;
+      
+      // Add notification for the created event
+      const eventDate = new Date(formData.date);
+      const today = new Date();
+      const isToday = eventDate.toDateString() === today.toDateString();
+      const isTomorrow = eventDate.toDateString() === new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString();
+      
+      if (isToday) {
+        addNotification({
+          type: 'calendar_event',
+          title: `Event Created: ${formData.title}`,
+          message: `${formData.type} scheduled for today at ${formData.time}`,
+          priority: formData.priority,
+          eventId: newEvent._id,
+          eventData: newEvent
+        });
+      } else if (isTomorrow) {
+        addNotification({
+          type: 'upcoming_event',
+          title: `Event Scheduled: ${formData.title}`,
+          message: `${formData.type} scheduled for tomorrow at ${formData.time}`,
+          priority: formData.priority,
+          eventId: newEvent._id,
+          eventData: newEvent
+        });
+      }
+      
       onEventAdded();
       onClose();
     } catch (err) {
@@ -605,20 +649,18 @@ const AddEventModal = ({ onClose, onEventAdded }) => {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-              <input
-                type="time"
+              <TimePicker
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -781,20 +823,18 @@ const EditEventModal = ({ event, onClose, onEventUpdated, onEventDeleted }) => {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-              <input
-                type="time"
+              <TimePicker
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>

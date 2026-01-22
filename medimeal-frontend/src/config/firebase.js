@@ -23,6 +23,13 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
+// Add scopes for better user experience
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+// Configure popup settings to avoid COOP issues
+googleProvider.addScope('openid');
+
 // Debug Firebase initialization
 console.log('🔥 Firebase initialized:', {
   app: !!app,

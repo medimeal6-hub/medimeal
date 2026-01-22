@@ -16,6 +16,13 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+        ws: true, // Enable websocket proxying
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, res) => {
+            // Suppress proxy errors - backend may not be running initially
+            // These errors are expected if the backend server is not started
+          });
+        },
       }
     }
   }

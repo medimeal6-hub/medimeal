@@ -187,3 +187,5 @@ foodPlanSchema.statics.findByDoctor = function(doctorId) {
 };
 
 module.exports = mongoose.model('FoodPlan', foodPlanSchema);
+
+

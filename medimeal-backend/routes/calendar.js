@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const { auth } = require('../middleware/auth');
+const CalendarEvent = require('../models/CalendarEvent');
 
 // Mock data for calendar events
 const mockEvents = [
@@ -109,75 +111,56 @@ const mockEvents = [
   }
 ];
 
-// Helper function to filter events by date range
-function filterEventsByDateRange(events, startDate, endDate) {
-  if (!startDate || !endDate) return events;
-  
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  return events.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate >= start && eventDate <= end;
-  });
+// Helper function to build DB query by date range
+function filterEventsByDateRangeQuery(userId, startDate, endDate, extra = {}) {
+  const query = { userId, ...extra };
+  if (startDate && endDate) {
+    query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+  }
+  return query;
 }
 
 // Helper function to get upcoming events
-function getUpcomingEvents(events, limit = 10) {
+async function getUpcomingEventsDb(userId, limit = 10) {
   const now = new Date();
-  
-  return events
-    .filter(event => {
-      // Parse the date part (without time) and compare with today
-      const eventDate = new Date(event.date.split('T')[0]);
-      const today = new Date(now.toISOString().split('T')[0]);
-      
-      // Event is upcoming if it's today or in the future and not completed
-      return eventDate >= today && !event.completed;
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.date + 'T' + a.time);
-      const dateB = new Date(b.date + 'T' + b.time);
-      return dateA - dateB;
-    })
-    .slice(0, limit);
+  const today = new Date(now.toISOString().split('T')[0]);
+  const events = await CalendarEvent.find({
+    userId,
+    date: { $gte: today },
+    completed: false
+  }).sort({ date: 1, time: 1 }).limit(limit);
+  return events;
 }
 
 // Helper function to get calendar statistics
-function getCalendarStats(events) {
+async function getCalendarStatsDb(userId) {
   const now = new Date();
   const today = new Date(now.toISOString().split('T')[0]);
+  const events = await CalendarEvent.find({ userId });
   const totalEvents = events.length;
   const completedEvents = events.filter(event => event.completed).length;
   const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.date.split('T')[0]);
-    return eventDate >= today && !event.completed;
+    const eventDate = new Date(event.date);
+    const eventDay = new Date(eventDate.toISOString().split('T')[0]);
+    return eventDay >= today && !event.completed;
   }).length;
   const overdueEvents = events.filter(event => {
-    const eventDate = new Date(event.date.split('T')[0]);
-    return eventDate < today && !event.completed;
+    const eventDate = new Date(event.date);
+    const eventDay = new Date(eventDate.toISOString().split('T')[0]);
+    return eventDay < today && !event.completed;
   }).length;
-  
-  // Group by type
-  const eventsByType = events.reduce((acc, event) => {
-    acc[event.type] = (acc[event.type] || 0) + 1;
-    return acc;
-  }, {});
-  
-  // Group by priority
-  const eventsByPriority = events.reduce((acc, event) => {
-    acc[event.priority] = (acc[event.priority] || 0) + 1;
-    return acc;
-  }, {});
-  
+  const eventsByTypeMap = {};
+  events.forEach(e => { eventsByTypeMap[e.type] = (eventsByTypeMap[e.type] || 0) + 1; });
+  const eventsByPriorityMap = {};
+  events.forEach(e => { eventsByPriorityMap[e.priority] = (eventsByPriorityMap[e.priority] || 0) + 1; });
   return {
     totalEvents,
     completedEvents,
     upcomingEvents,
     overdueEvents,
     eventsThisMonth: totalEvents,
-    eventsByType: Object.entries(eventsByType).map(([type, count]) => ({ _id: type, count })),
-    eventsByPriority: Object.entries(eventsByPriority).map(([priority, count]) => ({ _id: priority, count })),
+    eventsByType: Object.entries(eventsByTypeMap).map(([type, count]) => ({ _id: type, count })),
+    eventsByPriority: Object.entries(eventsByPriorityMap).map(([priority, count]) => ({ _id: priority, count })),
     completionRate: totalEvents > 0 ? Math.round((completedEvents / totalEvents) * 100) : 0
   };
 }
@@ -185,37 +168,19 @@ function getCalendarStats(events) {
 // @route   GET /calendar/events
 // @desc    Get all calendar events for a user
 // @access  Public (temporary)
-router.get('/events', async (req, res) => {
+router.get('/events', auth, async (req, res) => {
   try {
     const { startDate, endDate, type, priority, completed } = req.query;
-    
-    let filteredEvents = [...mockEvents];
-    
-    // Filter by date range
-    if (startDate && endDate) {
-      filteredEvents = filterEventsByDateRange(filteredEvents, startDate, endDate);
-    }
-    
-    // Filter by type
-    if (type) {
-      filteredEvents = filteredEvents.filter(event => event.type === type);
-    }
-    
-    // Filter by priority
-    if (priority) {
-      filteredEvents = filteredEvents.filter(event => event.priority === priority);
-    }
-    
-    // Filter by completion status
-    if (completed !== undefined) {
-      const isCompleted = completed === 'true';
-      filteredEvents = filteredEvents.filter(event => event.completed === isCompleted);
-    }
-    
+    const extra = {};
+    if (type) extra.type = type;
+    if (priority) extra.priority = priority;
+    if (completed !== undefined) extra.completed = completed === 'true';
+    const query = filterEventsByDateRangeQuery(req.user._id, startDate, endDate, extra);
+    const events = await CalendarEvent.find(query).sort({ date: 1, time: 1 });
     res.json({
       success: true,
-      data: filteredEvents,
-      count: filteredEvents.length
+      data: events,
+      count: events.length
     });
   } catch (error) {
     console.error('Error fetching calendar events:', error);
@@ -227,16 +192,22 @@ router.get('/events', async (req, res) => {
   }
 });
 
+// Helper function to get overdue events
+async function getOverdueEventsDb(userId) {
+  const now = new Date();
+  const today = new Date(now.toISOString().split('T')[0]);
+  const events = await CalendarEvent.find({ userId, completed: false, date: { $lt: today } }).sort({ date: 1, time: 1 });
+  return events;
+}
+
 // @route   GET /calendar/events/upcoming
 // @desc    Get upcoming calendar events
 // @access  Public (temporary)
-router.get('/events/upcoming', async (req, res) => {
+router.get('/events/upcoming', auth, async (req, res) => {
   try {
     const { limit = 10 } = req.query;
     const limitNum = parseInt(limit);
-    
-    const upcomingEvents = getUpcomingEvents(mockEvents, limitNum);
-    
+    const upcomingEvents = await getUpcomingEventsDb(req.user._id, limitNum);
     res.json({
       success: true,
       data: upcomingEvents,
@@ -252,13 +223,33 @@ router.get('/events/upcoming', async (req, res) => {
   }
 });
 
+// @route   GET /calendar/events/overdue
+// @desc    Get overdue calendar events
+// @access  Public (temporary)
+router.get('/events/overdue', auth, async (req, res) => {
+  try {
+    const overdueEvents = await getOverdueEventsDb(req.user._id);
+    res.json({
+      success: true,
+      data: overdueEvents,
+      count: overdueEvents.length
+    });
+  } catch (error) {
+    console.error('Error fetching overdue events:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching overdue events',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /calendar/stats
 // @desc    Get calendar statistics
 // @access  Public (temporary)
-router.get('/stats', async (req, res) => {
+router.get('/stats', auth, async (req, res) => {
   try {
-    const stats = getCalendarStats(mockEvents);
-    
+    const stats = await getCalendarStatsDb(req.user._id);
     res.json({
       success: true,
       data: stats
@@ -276,17 +267,15 @@ router.get('/stats', async (req, res) => {
 // @route   GET /calendar/events/:id
 // @desc    Get a specific calendar event
 // @access  Public (temporary)
-router.get('/events/:id', async (req, res) => {
+router.get('/events/:id', auth, async (req, res) => {
   try {
-    const event = mockEvents.find(e => e._id === req.params.id);
-    
+    const event = await CalendarEvent.findOne({ _id: req.params.id, userId: req.user._id });
     if (!event) {
       return res.status(404).json({
         success: false,
         message: 'Calendar event not found'
       });
     }
-    
     res.json({
       success: true,
       data: event
@@ -304,7 +293,7 @@ router.get('/events/:id', async (req, res) => {
 // @route   POST /calendar/events
 // @desc    Create a new calendar event
 // @access  Public (temporary)
-router.post('/events', async (req, res) => {
+router.post('/events', auth, async (req, res) => {
   try {
     const {
       title,
@@ -314,7 +303,8 @@ router.post('/events', async (req, res) => {
       duration,
       description,
       location,
-      priority
+      priority,
+      reminder
     } = req.body;
     
     // Validate required fields
@@ -325,22 +315,20 @@ router.post('/events', async (req, res) => {
       });
     }
     
-    // Create new event
-    const newEvent = {
-      _id: (mockEvents.length + 1).toString(),
+    const newEvent = await CalendarEvent.create({
+      userId: req.user._id,
       title,
       type,
-      date: new Date(date).toISOString(),
+      date: new Date(date),
       time,
       duration: duration || 30,
       description: description || '',
       location: location || '',
       priority: priority || 'medium',
+      reminder: reminder || '15',
       completed: false,
       color: getEventColor(type, priority || 'medium')
-    };
-    
-    mockEvents.push(newEvent);
+    });
     
     res.status(201).json({
       success: true,
@@ -360,18 +348,15 @@ router.post('/events', async (req, res) => {
 // @route   PUT /calendar/events/:id
 // @desc    Update a calendar event
 // @access  Public (temporary)
-router.put('/events/:id', async (req, res) => {
+router.put('/events/:id', auth, async (req, res) => {
   try {
-    const eventIndex = mockEvents.findIndex(e => e._id === req.params.id);
-    
-    if (eventIndex === -1) {
+    const event = await CalendarEvent.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!event) {
       return res.status(404).json({
         success: false,
         message: 'Calendar event not found'
       });
     }
-    
-    const event = mockEvents[eventIndex];
     const {
       title,
       type,
@@ -380,23 +365,26 @@ router.put('/events/:id', async (req, res) => {
       duration,
       description,
       location,
-      priority
+      priority,
+      reminder,
+      completed
     } = req.body;
     
     // Update fields
-    if (title) event.title = title;
-    if (type) event.type = type;
-    if (date) event.date = new Date(date).toISOString();
+    if (title !== undefined) event.title = title;
+    if (type !== undefined) event.type = type;
+    if (date !== undefined) event.date = new Date(date);
     if (time) event.time = time;
-    if (duration) event.duration = duration;
+    if (duration !== undefined) event.duration = duration;
     if (description !== undefined) event.description = description;
     if (location !== undefined) event.location = location;
-    if (priority) {
+    if (priority !== undefined) {
       event.priority = priority;
-      event.color = getEventColor(type || event.type, priority);
+      event.color = getEventColor(event.type, priority);
     }
-    
-    mockEvents[eventIndex] = event;
+    if (reminder !== undefined) event.reminder = reminder;
+    if (completed !== undefined) event.completed = completed;
+    await event.save();
     
     res.json({
       success: true,
@@ -416,18 +404,15 @@ router.put('/events/:id', async (req, res) => {
 // @route   DELETE /calendar/events/:id
 // @desc    Delete a calendar event
 // @access  Public (temporary)
-router.delete('/events/:id', async (req, res) => {
+router.delete('/events/:id', auth, async (req, res) => {
   try {
-    const eventIndex = mockEvents.findIndex(e => e._id === req.params.id);
-    
-    if (eventIndex === -1) {
+    const event = await CalendarEvent.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    if (!event) {
       return res.status(404).json({
         success: false,
         message: 'Calendar event not found'
       });
     }
-    
-    mockEvents.splice(eventIndex, 1);
     
     res.json({
       success: true,
@@ -446,9 +431,9 @@ router.delete('/events/:id', async (req, res) => {
 // @route   PATCH /calendar/events/:id/toggle-complete
 // @desc    Toggle completion status of a calendar event
 // @access  Public (temporary)
-router.patch('/events/:id/toggle-complete', async (req, res) => {
+router.patch('/events/:id/toggle-complete', auth, async (req, res) => {
   try {
-    const event = mockEvents.find(e => e._id === req.params.id);
+    const event = await CalendarEvent.findOne({ _id: req.params.id, userId: req.user._id });
     
     if (!event) {
       return res.status(404).json({
@@ -458,6 +443,7 @@ router.patch('/events/:id/toggle-complete', async (req, res) => {
     }
     
     event.completed = !event.completed;
+    await event.save();
     
     res.json({
       success: true,

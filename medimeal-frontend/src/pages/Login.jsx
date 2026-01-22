@@ -1,7 +1,51 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Heart, Eye, EyeOff, ArrowLeft, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Heart, Eye, EyeOff, ArrowLeft, Mail, Lock, AlertCircle, Stethoscope, Syringe, Pill, Thermometer, Activity } from 'lucide-react'
+
+const FloatingIcons = () => {
+  const icons = [
+    { Icon: Stethoscope, color: 'text-blue-500', top: '10%', left: '10%', delay: '0s', size: 48 },
+    { Icon: Syringe, color: 'text-green-500', top: '20%', left: '80%', delay: '1s', size: 40 },
+    { Icon: Pill, color: 'text-purple-500', top: '60%', left: '15%', delay: '2s', size: 32 },
+    { Icon: Thermometer, color: 'text-red-500', top: '70%', left: '85%', delay: '3s', size: 44 },
+    { Icon: Activity, color: 'text-indigo-500', top: '40%', left: '50%', delay: '1.5s', size: 56 },
+    { Icon: Heart, color: 'text-pink-500', top: '85%', left: '40%', delay: '2.5s', size: 36 },
+    { Icon: Stethoscope, color: 'text-teal-500', top: '15%', left: '60%', delay: '0.5s', size: 40 },
+    { Icon: Pill, color: 'text-yellow-500', top: '80%', left: '10%', delay: '3.5s', size: 48 },
+    { Icon: Activity, color: 'text-blue-400', top: '5%', left: '40%', delay: '4s', size: 32 },
+    { Icon: Syringe, color: 'text-emerald-400', top: '50%', left: '90%', delay: '2.2s', size: 36 },
+    { Icon: Thermometer, color: 'text-rose-400', top: '30%', left: '20%', delay: '1.8s', size: 42 },
+  ]
+
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-slate-800">
+      <div className="absolute inset-0 bg-[radial-gradient(#475569_1px,transparent_1px)] [background-size:16px_16px] opacity-20"></div>
+      {icons.map((item, index) => (
+        <div
+          key={index}
+          className={`absolute ${item.color} opacity-20`}
+          style={{
+            top: item.top,
+            left: item.left,
+            animation: `floatAnimation 6s ease-in-out infinite`,
+            animationDelay: item.delay,
+          }}
+        >
+          <item.Icon size={item.size} />
+        </div>
+      ))}
+      <style>{`
+        @keyframes floatAnimation {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+          100% { transform: translateY(0px); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +57,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { login, loginWithGoogle, loginWithFirebase, loading: authLoading, isAuthenticated, user, redirectAfterAuth } = useAuth()
+  const { login, loginWithFirebase, loading: authLoading, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   // Don't auto-redirect authenticated users from login page
@@ -65,19 +109,12 @@ const Login = () => {
   if (authLoading && isAuthenticated) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
-        {/* Background Image with Mixed Fruits */}
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
-          style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80')",
-            filter: "contrast(0.7) brightness(0.7) saturate(0.6)"
-          }}
-        />
+        <FloatingIcons />
         
         {/* Content */}
         <div className="relative z-10 text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">Redirecting...</p>
         </div>
       </div>
     )
@@ -86,14 +123,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background Image with Mixed Fruits */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80')",
-          filter: "contrast(0.7) brightness(0.7) saturate(0.6)"
-        }}
-      />
+      <FloatingIcons />
       
       {/* Header */}
       <header className="relative z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
@@ -124,7 +154,7 @@ const Login = () => {
         <div className="mb-4">
           <Link 
             to="/" 
-            className="inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors group text-sm"
+            className="inline-flex items-center text-gray-300 hover:text-white transition-colors group text-sm"
           >
             <ArrowLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
             Back to Home
@@ -277,18 +307,14 @@ const Login = () => {
                   setError('')
                   try {
                     const result = await loginWithFirebase()
-                    if (result.success && result.redirecting) {
-                      // User will be redirected to Google, then back to our app
-                      // The AuthContext will handle the redirect result
-                      console.log('Redirecting to Google OAuth...')
-                      // Keep loading state until redirect completes
-                    } else if (result.success && result.user) {
-                      const destination = result.user?.role === 'admin' ? '/admin' : '/dashboard'
-                      console.log('Direct Google sign-in successful, redirecting to:', destination)
+                    if (result.success && result.user) {
+                      // Redirect based on user role
+                      const destination = result.user?.role === 'admin' ? '/admin' : 
+                                         result.user?.role === 'doctor' ? '/doctor' : '/dashboard'
+                      console.log('Google sign-in successful, redirecting to:', destination)
                       navigate(destination)
-                      setLoading(false)
                     } else {
-                      setError(result.message)
+                      setError(result.message || 'Google sign-in failed')
                       setLoading(false)
                     }
                   } catch (e) {

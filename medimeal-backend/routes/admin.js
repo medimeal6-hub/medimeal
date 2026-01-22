@@ -12,7 +12,7 @@ router.use(auth, authorize('admin'));
 // GET /api/admin/users - list all users
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.find().select('+isActive');
+    const users = await User.find();
     res.json({ success: true, data: users.map(u => u.getProfile ? u.getProfile() : {
       _id: u._id,
       firstName: u.firstName,
@@ -24,7 +24,8 @@ router.get('/users', async (req, res) => {
       updatedAt: u.updatedAt
     }) });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch users' });
+    console.error('Get users error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch users', error: error.message });
   }
 });
 
@@ -478,6 +479,54 @@ router.get('/conflicts', async (req, res) => {
   }
 });
 
+// GET /api/admin/patient-assignments - get all patient assignments
+router.get('/patient-assignments', async (req, res) => {
+  try {
+    // This would typically fetch from PatientAssignment model
+    // For now, returning sample data
+    const sampleAssignments = [
+      {
+        id: '1',
+        patientName: 'John Doe',
+        patientId: '507f1f77bcf86cd799439011',
+        doctorName: 'Dr. Jane Smith',
+        doctorId: '507f1f77bcf86cd799439012',
+        wardNumber: '#123456',
+        priority: 'high',
+        status: 'active',
+        startDate: new Date().toISOString(),
+        diagnosis: 'Chest pain, possible cardiac issue',
+        notes: 'Monitor closely for any changes'
+      },
+      {
+        id: '2',
+        patientName: 'Emily Davis',
+        patientId: '507f1f77bcf86cd799439013',
+        doctorName: 'Dr. Michael Brown',
+        doctorId: '507f1f77bcf86cd799439014',
+        wardNumber: '#123457',
+        priority: 'medium',
+        status: 'active',
+        startDate: new Date().toISOString(),
+        diagnosis: 'Post-surgical recovery',
+        notes: 'Regular checkups scheduled'
+      }
+    ];
+
+    res.status(200).json({
+      success: true,
+      data: sampleAssignments
+    });
+  } catch (error) {
+    console.error('Fetch patient assignments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch patient assignments'
+    });
+  }
+});
+
+
 // GET /api/admin/alerts - get all alerts
 router.get('/alerts', async (req, res) => {
   try {
@@ -828,11 +877,24 @@ router.post('/assign-patient', async (req, res) => {
       notes = ''
     } = req.body;
 
+    console.log('=== ASSIGN PATIENT DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Request user:', req.user ? { id: req.user._id, role: req.user.role, email: req.user.email } : 'No user');
+    console.log('Request headers:', req.headers);
+    console.log('===========================');
+
     // Validation
     if (!patientId || !doctorId) {
       return res.status(400).json({ 
         success: false, 
         message: 'Patient ID and Doctor ID are required' 
+      });
+    }
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required to assign patients' 
       });
     }
 
@@ -1244,6 +1306,22 @@ router.get('/dashboard-stats', async (req, res) => {
     });
   }
 });
+
+// Import analytics controller
+const {
+  getUserGrowthAnalytics,
+  getAppointmentAnalytics,
+  getDietSuccessAnalytics,
+  getAIAccuracyMetrics,
+  getDashboardAnalytics
+} = require('../controllers/adminAnalyticsController');
+
+// Analytics routes
+router.get('/analytics/user-growth', getUserGrowthAnalytics);
+router.get('/analytics/appointments', getAppointmentAnalytics);
+router.get('/analytics/diet-success', getDietSuccessAnalytics);
+router.get('/analytics/ai-accuracy', getAIAccuracyMetrics);
+router.get('/analytics/dashboard', getDashboardAnalytics);
 
 module.exports = router;
 

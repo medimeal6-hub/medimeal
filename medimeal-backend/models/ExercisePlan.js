@@ -158,3 +158,5 @@ exercisePlanSchema.statics.findByDoctor = function(doctorId) {
 };
 
 module.exports = mongoose.model('ExercisePlan', exercisePlanSchema);
+
+

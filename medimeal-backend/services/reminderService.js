@@ -1,8 +1,9 @@
 const cron = require('node-cron')
 const User = require('../models/User')
 const Meal = require('../models/Meal')
+const CalendarEvent = require('../models/CalendarEvent')
 const ReminderLog = require('../models/ReminderLog')
-const { sendMail, sendMedicationReminderEmail } = require('../utils/mailer')
+const { sendMail, sendMedicationReminderEmail, sendAppointmentReminderEmail } = require('../utils/mailer')
 
 // Helper
 const toDateKey = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10)
@@ -77,6 +78,29 @@ async function collectDueReminders() {
   return due
 }
 
+async function collectDueAppointmentReminders() {
+  const dateKey = toDateKey()
+  const currentHM = nowLocalHM()
+  const startOfDay = new Date(dateKey)
+  const endOfDay = new Date(dateKey)
+  endOfDay.setDate(endOfDay.getDate() + 1)
+  const events = await CalendarEvent.find({
+    type: 'appointment',
+    completed: false,
+    date: { $gte: startOfDay, $lt: endOfDay },
+    reminder: { $ne: 'none' }
+  }).select('userId title date time reminder appointmentDetails')
+  const due = []
+  for (const ev of events) {
+    const offsetMinutes = parseInt(ev.reminder, 10)
+    if (isNaN(offsetMinutes)) continue
+    const remindHM = computeRelativeTime(ev.time, 'before', offsetMinutes)
+    if (remindHM !== currentHM) continue
+    due.push(ev)
+  }
+  return due
+}
+
 async function sendDueEmails() {
   const due = await collectDueReminders()
   console.log(`📧 Processing ${due.length} medication reminders...`)
@@ -139,6 +163,44 @@ async function sendDueEmails() {
       } catch (logError) {
         console.error('Failed to log reminder error:', logError)
       }
+    }
+  }
+
+  const dueAppointments = await collectDueAppointmentReminders()
+  console.log(`📧 Processing ${dueAppointments.length} appointment reminders...`)
+  for (const ev of dueAppointments) {
+    try {
+      const user = await User.findById(ev.userId).select('email firstName')
+      if (!user) continue
+      const eventDateTime = new Date(`${ev.date.toISOString().split('T')[0]}T${ev.time}:00`)
+      const diffMs = eventDateTime.getTime() - Date.now()
+      const hoursUntil = Math.max(0, Math.round(diffMs / 3600000))
+      await sendAppointmentReminderEmail(
+        user.email,
+        user.firstName || 'User',
+        {
+          doctorName: ev.appointmentDetails?.doctor || 'Doctor',
+          date: ev.date.toLocaleDateString(),
+          time: ev.time,
+          type: 'appointment'
+        },
+        hoursUntil
+      )
+      const reminderLog = new ReminderLog({
+        userId: ev.userId,
+        medicationName: ev.title,
+        scheduledTime: eventDateTime,
+        sentTime: new Date(),
+        status: 'sent',
+        emailAddress: user.email,
+        subject: `⏰ Appointment Reminder - ${ev.title}`,
+        message: `Reminder for appointment at ${ev.time} on ${ev.date.toLocaleDateString()}`,
+        reminderType: 'appointment'
+      })
+      await reminderLog.save()
+      console.log(`✅ Sent appointment reminder to ${user.email}`)
+    } catch (e) {
+      console.error('❌ Appointment reminder failed:', e.message)
     }
   }
 }

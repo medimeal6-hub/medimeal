@@ -9,6 +9,17 @@ const { auth: firebaseAuth } = require('../config/firebase');
 
 const router = express.Router();
 
+// Test endpoint for debugging
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth service is running',
+    timestamp: new Date().toISOString(),
+    googleClientId: googleClientId ? 'configured' : 'not configured',
+    firebaseConfigured: !!firebaseAuth
+  });
+});
+
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -20,10 +31,17 @@ const generateToken = (userId) => {
 };
 
 
-// Google OAuth client
-const googleClientId = process.env.GOOGLE_CLIENT_ID || '502401311418-a5mugpah82mq0ak8a5m9tfoepqlobftm.apps.googleusercontent.com';
+// Google OAuth client - Updated to match Firebase Web App
+const googleClientId = process.env.GOOGLE_CLIENT_ID || '1088838483677-riwqgfnrshjrlpjnfmjak7j6j5nrm10u.apps.googleusercontent.com';
 console.log('🔑 Google Client ID loaded:', googleClientId);
 const googleClient = new OAuth2Client(googleClientId);
+
+// Validate Google Client ID
+if (!googleClientId || googleClientId === 'your-google-client-id') {
+  console.error('❌ Google Client ID not configured properly');
+} else {
+  console.log('✅ Google OAuth client initialized successfully');
+}
 
 
 // @route   POST /api/auth/register
@@ -565,8 +583,25 @@ router.post('/google', [
     const email = payload.email.toLowerCase();
     const name = (payload.name || email.split('@')[0] || '').trim();
     const [firstNameRaw, ...restName] = name.split(' ');
-    const firstName = (firstNameRaw || 'User').replace(/[^A-Za-z\s]/g, '').slice(0, 50) || 'User';
-    const lastName = restName.join(' ').replace(/[^A-Za-z\s]/g, '').slice(0, 50) || 'User';
+    
+    // Clean name - remove non-letter characters but keep letters and spaces
+    const cleanName = (name) => name.replace(/[^A-Za-z\s]/g, '').trim();
+    
+    // Get first name (required, must be letters only)
+    let firstName = cleanName(firstNameRaw || 'User');
+    if (firstName === '' || !/^[A-Za-z\s]+$/.test(firstName)) {
+      firstName = 'User';
+    }
+    
+    // Get last name (required, must be letters only)
+    let lastName = cleanName(restName.join(' '));
+    if (lastName === '' || !/^[A-Za-z\s]+$/.test(lastName)) {
+      lastName = 'User';
+    }
+    
+    // Ensure length constraints
+    firstName = firstName.slice(0, 50);
+    lastName = lastName.slice(0, 50);
 
 
     // Generate a compliant password (min 6, with upper, lower, number)
@@ -574,17 +609,64 @@ router.post('/google', [
 
 
     // Find or create the user
+    console.log('👤 Looking for user with email:', email);
+    console.log('📝 Parsed name data:', { firstName, lastName, email });
+    
     let user = await User.findByEmail(email);
     if (!user) {
-      user = new User({
-        firstName,
-        lastName,
-        email,
-        password: tempPassword,
-        role: 'user',
-        emailVerified: true
-      });
-      await user.save();
+      console.log('🆕 Creating new user for:', email);
+      
+      try {
+        user = new User({
+          firstName,
+          lastName,
+          email,
+          password: tempPassword,
+          role: 'user',
+          emailVerified: true
+        });
+        
+        // Validate before saving
+        const validationError = user.validateSync();
+        if (validationError) {
+          console.error('❌ User validation failed:', validationError.errors);
+          return res.status(400).json({
+            success: false,
+            message: 'User validation failed',
+            error: validationError.errors
+          });
+        }
+        
+        await user.save();
+        console.log('✅ New user created successfully:', user.email, 'Role:', user.role);
+      } catch (error) {
+        console.error('❌ Error creating user:', error.message);
+        console.error('❌ Error details:', {
+          name: error.name,
+          code: error.code,
+          errors: error.errors
+        });
+        
+        // Handle duplicate key error
+        if (error.code === 11000) {
+          console.log('🔄 User already exists, trying to find existing user...');
+          user = await User.findByEmail(email);
+          if (!user) {
+            return res.status(500).json({
+              success: false,
+              message: 'Error processing authentication'
+            });
+          }
+        } else {
+          return res.status(500).json({
+            success: false,
+            message: 'Error creating user account',
+            error: error.message
+          });
+        }
+      }
+    } else {
+      console.log('👤 Existing user found:', user.email, 'Role:', user.role);
     }
 
 
@@ -633,8 +715,18 @@ router.post('/firebase', [
 
     // Verify the Firebase ID token
     console.log('🔥 Verifying Firebase ID token...');
-    const decodedToken = await firebaseAuth.verifyIdToken(idToken);
-    console.log('✅ Firebase token verified successfully:', { uid: decodedToken.uid, email: decodedToken.email });
+    let decodedToken;
+    try {
+      decodedToken = await firebaseAuth.verifyIdToken(idToken);
+      console.log('✅ Firebase token verified successfully:', { uid: decodedToken.uid, email: decodedToken.email });
+    } catch (firebaseError) {
+      console.error('❌ Firebase token verification failed:', firebaseError.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Firebase token',
+        error: firebaseError.message
+      });
+    }
     const { uid, email, name, picture } = decodedToken;
     
     if (!email) {
@@ -647,18 +739,36 @@ router.post('/firebase', [
     const emailLower = email.toLowerCase();
     const fullName = name || emailLower.split('@')[0] || '';
     const [firstNameRaw, ...restName] = fullName.split(' ');
-    const firstName = (firstNameRaw || 'User').replace(/[^A-Za-z\s]/g, '').slice(0, 50) || 'User';
-    const lastName = restName.join(' ').replace(/[^A-Za-z\s]/g, '').slice(0, 50) || 'User';
+    
+    // Clean name - remove non-letter characters but keep letters and spaces
+    const cleanName = (name) => name.replace(/[^A-Za-z\s]/g, '').trim();
+    
+    // Get first name (required, must be letters only)
+    let firstName = cleanName(firstNameRaw || 'User');
+    if (firstName === '' || !/^[A-Za-z\s]+$/.test(firstName)) {
+      firstName = 'User';
+    }
+    
+    // Get last name (required, must be letters only)
+    let lastName = cleanName(restName.join(' '));
+    if (lastName === '' || !/^[A-Za-z\s]+$/.test(lastName)) {
+      lastName = 'User';
+    }
+    
+    // Ensure length constraints
+    firstName = firstName.slice(0, 50);
+    lastName = lastName.slice(0, 50);
 
     // Generate a compliant password (min 6, with upper, lower, number)
     const tempPassword = 'Aa1' + jwt.sign({ email: emailLower }, process.env.JWT_SECRET).replace(/[^A-Za-z0-9]/g, '').slice(0, 9);
 
     // Find or create the user
     console.log('👤 Looking for user with email:', emailLower);
+    console.log('📝 Parsed name data:', { firstName, lastName, email: emailLower });
+    
     let user = await User.findByEmail(emailLower);
     if (!user) {
       console.log('🆕 Creating new user for:', emailLower);
-      console.log('📝 User data:', { firstName, lastName, email: emailLower, role: 'user' });
       
       try {
         user = new User({
@@ -671,14 +781,41 @@ router.post('/firebase', [
           profilePicture: picture || null,
           firebaseUid: uid
         });
+        
+        // Validate before saving
+        const validationError = user.validateSync();
+        if (validationError) {
+          console.error('❌ User validation failed:', validationError.errors);
+          return res.status(400).json({
+            success: false,
+            message: 'User validation failed',
+            error: validationError.errors
+          });
+        }
+        
         await user.save();
-        console.log('✅ New user created:', user.email, 'Role:', user.role);
+        console.log('✅ New user created successfully:', user.email, 'Role:', user.role);
       } catch (error) {
         console.error('❌ Error creating user:', error.message);
-        if (error.name === 'ValidationError') {
-          console.error('📋 Validation errors:', error.errors);
+        console.error('❌ Error details:', {
+          name: error.name,
+          code: error.code,
+          errors: error.errors
+        });
+        
+        // Handle duplicate key error
+        if (error.code === 11000) {
+          console.log('🔄 User already exists, trying to find existing user...');
+          user = await User.findByEmail(emailLower);
+          if (!user) {
+            return res.status(500).json({
+              success: false,
+              message: 'Error processing authentication'
+            });
+          }
+        } else {
+          throw error;
         }
-        throw error;
       }
     } else {
       console.log('👤 Existing user found:', user.email, 'Role:', user.role);

@@ -136,3 +136,5 @@ reminderLogSchema.statics.getRecentReminders = function(userId, limit = 10) {
 };
 
 module.exports = mongoose.model('ReminderLog', reminderLogSchema);
+
+

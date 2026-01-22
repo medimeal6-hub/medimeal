@@ -36,14 +36,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function (email) {
-        // For OAuth users (with firebaseUid), allow any valid email
-        if (this.firebaseUid) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-        // For regular users, only allow .org, .in, .com
-        return /^[^\s@]+@[^\s@]+\.(org|in|com)$/.test(email);
+        // Allow any valid email format for now
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       },
-      message: 'Email must end with .org, .in, or .com (or be a valid email for OAuth users)'
+      message: 'Please provide a valid email address'
     }
   },
   password: {
@@ -53,14 +49,10 @@ const userSchema = new mongoose.Schema({
     select: false,
     validate: {
       validator: function (password) {
-        // Allow "medi@123" specifically, or follow normal rules
-        if (password === 'medi@123') {
-          return true;
-        }
-        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(password);
+        // Simple validation - just check minimum length
+        return password && password.length >= 6;
       },
-      message:
-        'Password must be at least 6 characters and include one uppercase letter, one lowercase letter, and one number, or use "medi@123".'
+      message: 'Password must be at least 6 characters long'
     }
   },
   role: {

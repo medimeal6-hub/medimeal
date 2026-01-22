@@ -1,0 +1,23 @@
+# Global ignores for the medi monorepo
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment and local config
+.env
+.env.*
+.pnp/
+.pnp.js
+
+# Coverage and logs
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store

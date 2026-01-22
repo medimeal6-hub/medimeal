@@ -1,7 +1,13 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import apiClient from '../utils/api'
 import { signInWithRedirect, getRedirectResult, signOut, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../config/firebase'
+
+// Configure axios baseURL for all axios calls
+// Vite proxy handles /api -> http://localhost:5000
+axios.defaults.baseURL = '/api'
+apiClient.defaults.baseURL = '/api'
 
 const AuthContext = createContext()
 
@@ -17,9 +23,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
-  const [redirectAfterAuth, setRedirectAfterAuth] = useState(null)
   const [authLoading, setAuthLoading] = useState(false)
-  const [redirectTimeout, setRedirectTimeout] = useState(null)
+  const [lastAuthAttempt, setLastAuthAttempt] = useState(0)
 
   const setAuthToken = (newToken) => {
     console.log('🔐 Setting auth token:', newToken ? `${newToken.substring(0, 20)}...` : 'null')
@@ -51,14 +56,26 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           console.log('🔍 Checking auth with token:', token.substring(0, 20) + '...')
-          const response = await axios.get('/api/auth/me')
+          const response = await axios.get('/auth/me')
           console.log('✅ Auth check successful:', response.data.data.user)
           setUser(response.data.data.user)
         } catch (error) {
           console.error('❌ Auth check failed:', error.response?.status, error.message)
-          // Clear malformed token
-          localStorage.removeItem('token')
-          setAuthToken(null)
+          
+          // Handle rate limiting gracefully
+          if (error.response?.status === 429) {
+            console.log('⏳ Rate limited during auth check, will retry later')
+            // Don't clear token on rate limit, just wait
+            setTimeout(() => {
+              if (token) {
+                checkAuth()
+              }
+            }, 5000) // Retry after 5 seconds
+          } else {
+            // Clear malformed token for other errors
+            localStorage.removeItem('token')
+            setAuthToken(null)
+          }
         }
       }
       setLoading(false)
@@ -74,14 +91,13 @@ export const AuthProvider = ({ children }) => {
       token: !!token, 
       isAuthenticated: !!user && !!token,
       loading: loading || authLoading,
-      redirectAfterAuth,
       authLoading
     })
-  }, [user, token, loading, authLoading, redirectAfterAuth])
+  }, [user, token, loading, authLoading])
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password })
+      const response = await axios.post('/auth/login', { email, password })
       const { user: userData, token: userToken } = response.data.data
       
       console.log('Login response:', { userData, userToken })
@@ -102,7 +118,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/api/auth/register', userData)
+      const response = await axios.post('/auth/register', userData)
       const { user: newUser, token: userToken } = response.data.data
       
       setUser(newUser)
@@ -128,7 +144,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/auth/profile', profileData)
+      const response = await axios.put('/auth/profile', profileData)
       setUser(response.data.data.user)
       return { success: true, user: response.data.data.user }
     } catch (error) {
@@ -145,7 +161,7 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async (credential) => {
     try {
-      const response = await axios.post('/api/auth/google', { credential })
+      const response = await axios.post('/auth/google', { credential })
       const { user: userData, token: userToken } = response.data.data
       setUser(userData)
       setAuthToken(userToken)
@@ -159,133 +175,94 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const loginWithFirebase = async () => {
+  const loginWithFirebase = async (retryCount = 0) => {
     try {
-      console.log('🔥 Starting Firebase authentication...')
-      console.log('🔧 Auth object:', !!auth)
-      console.log('🔧 Google provider:', !!googleProvider)
+      // Debounce rapid authentication attempts
+      const now = Date.now()
+      const timeSinceLastAttempt = now - lastAuthAttempt
+      const minInterval = 2000 // 2 seconds minimum between attempts
       
-      // Try popup first, fallback to redirect
-      try {
-        console.log('🚀 Trying popup authentication...')
-        const result = await signInWithPopup(auth, googleProvider)
-        console.log('✅ Popup authentication successful:', result.user.email)
-        
-        // Process the result immediately
-        const idToken = await result.user.getIdToken()
-        console.log('📡 Sending Firebase token to backend...')
-        const response = await axios.post('/api/auth/firebase', { idToken })
-        const { user: userData, token: userToken } = response.data.data
-        
-        console.log('🎉 Firebase authentication successful:', userData)
-        console.log('🔑 Token received:', !!userToken)
-        console.log('👤 User role:', userData?.role, 'Email:', userData?.email)
-        
-        // Update state atomically
-        setUser(userData)
-        setAuthToken(userToken)
-        localStorage.setItem('token', userToken)
-        
-        return { success: true, user: userData }
-      } catch (popupError) {
-        console.log('⚠️ Popup failed, trying redirect:', popupError.message)
-        
-        // Fallback to redirect
-        console.log('🚀 Calling signInWithRedirect...')
-        await signInWithRedirect(auth, googleProvider)
-        console.log('✅ signInWithRedirect completed')
-        return { success: true, redirecting: true }
+      if (timeSinceLastAttempt < minInterval && retryCount === 0) {
+        console.log(`⏳ Too soon since last auth attempt (${timeSinceLastAttempt}ms), waiting...`)
+        await new Promise(resolve => setTimeout(resolve, minInterval - timeSinceLastAttempt))
       }
+      
+      setLastAuthAttempt(Date.now())
+      console.log('🔥 Starting Firebase authentication...')
+      setAuthLoading(true)
+      
+      // Use popup - with better error handling
+      console.log('🚀 Opening Google Sign-In popup...')
+      const result = await signInWithPopup(auth, googleProvider)
+      console.log('✅ Popup authentication successful:', result.user.email)
+      
+      // Process the result immediately
+      const idToken = await result.user.getIdToken()
+      console.log('📡 Sending Firebase token to backend...')
+      console.log('📡 Backend URL:', axios.defaults.baseURL)
+      
+      const response = await axios.post('/auth/firebase', { idToken }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Backend authentication failed')
+      }
+      
+      const { user: userData, token: userToken } = response.data.data
+      
+      console.log('🎉 Firebase authentication successful:', userData)
+      console.log('🔑 Token received:', !!userToken)
+      console.log('👤 User role:', userData?.role, 'Email:', userData?.email)
+      
+      // Update state atomically
+      setUser(userData)
+      setAuthToken(userToken)
+      localStorage.setItem('token', userToken)
+      setAuthLoading(false)
+      
+      return { success: true, user: userData }
     } catch (error) {
       console.error('💥 Firebase login error:', error)
       console.error('📋 Error details:', {
         message: error.message,
         code: error.code,
-        stack: error.stack
+        response: error.response?.data,
+        status: error.response?.status
       })
+      
+      // Handle rate limiting with exponential backoff
+      if (error.response?.status === 429 && retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000 // 1s, 2s, 4s
+        console.log(`⏳ Rate limited, retrying in ${delay}ms (attempt ${retryCount + 1}/3)`)
+        setAuthLoading(false)
+        
+        await new Promise(resolve => setTimeout(resolve, delay))
+        return loginWithFirebase(retryCount + 1)
+      }
+      
+      setAuthLoading(false)
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Google sign-in failed. Please try again.'
+      if (error.response?.status === 429) {
+        errorMessage = 'Too many authentication attempts. Please wait a moment and try again.'
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       return {
         success: false,
-        message: error.message || 'Firebase sign-in failed'
+        message: errorMessage
       }
     }
   }
 
-  // Handle redirect result when user comes back from Google
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        console.log('🔍 Starting redirect result handling...')
-        setAuthLoading(true)
-        const result = await getRedirectResult(auth)
-        
-        if (result) {
-          console.log('✅ Google OAuth redirect result received:', result.user.email)
-          const idToken = await result.user.getIdToken()
-          
-          console.log('📡 Sending Firebase token to backend...')
-          const response = await axios.post('/api/auth/firebase', { idToken })
-          const { user: userData, token: userToken } = response.data.data
-          
-          console.log('🎉 Firebase authentication successful:', userData)
-          console.log('🔑 Token received:', !!userToken)
-          console.log('👤 User role:', userData?.role, 'Email:', userData?.email)
-          
-          // Update state atomically
-          setUser(userData)
-          setAuthToken(userToken)
-          localStorage.setItem('token', userToken)
-          
-          // Set redirect destination for RedirectHandler to handle
-          let destination = '/dashboard'
-          if (userData?.role === 'admin') {
-            destination = '/admin'
-          } else if (userData?.role === 'doctor') {
-            destination = '/doctor'
-          }
-          console.log('✅ Authentication successful, setting redirect to:', destination, 'for role:', userData?.role)
-          console.log('🔍 Full user data:', JSON.stringify(userData, null, 2))
-          
-          // Use setTimeout to ensure state updates are processed
-          setTimeout(() => {
-            setRedirectAfterAuth(destination)
-            
-            // Set a timeout to clear redirect if it doesn't happen within 5 seconds
-            const timeout = setTimeout(() => {
-              console.log('⚠️ Redirect timeout - clearing redirect state')
-              setRedirectAfterAuth(null)
-              setAuthLoading(false)
-            }, 5000)
-            setRedirectTimeout(timeout)
-          }, 50)
-        } else {
-          console.log('❌ No redirect result found')
-        }
-      } catch (error) {
-        console.error('💥 Redirect result error:', error)
-        console.error('📋 Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        })
-        // Show error to user
-        alert(`Authentication failed: ${error.message}. Please try again.`)
-      } finally {
-        setAuthLoading(false)
-      }
-    }
-
-    handleRedirectResult()
-  }, [])
-
-  const logoutFirebase = async () => {
-    try {
-      await signOut(auth)
-      logout()
-    } catch (error) {
-      console.error('Firebase logout error:', error)
-      logout() // Fallback to regular logout
-    }
-  }
 
   const value = {
     user,
@@ -298,12 +275,7 @@ export const AuthProvider = ({ children }) => {
     updateUserData,
     loginWithGoogle,
     loginWithFirebase,
-    logoutFirebase,
-    isAuthenticated: !!user && !!token,
-    redirectAfterAuth,
-    setRedirectAfterAuth,
-    redirectTimeout,
-    setRedirectTimeout
+    isAuthenticated: !!user && !!token
   }
 
   return (
