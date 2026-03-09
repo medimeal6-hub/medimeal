@@ -194,6 +194,10 @@ app.use('/api/user/payments', require('./routes/userPayments'));
 // Unified Appointments System Routes
 app.use('/api/appointments', require('./routes/appointments'));
 
+// Research Implementation Routes - Intelligent Nutrition & Symptom Risk
+app.use('/api/nutrition', require('./routes/nutritionRoutes'));
+app.use('/api/symptoms', require('./routes/symptomRoutes'));
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({

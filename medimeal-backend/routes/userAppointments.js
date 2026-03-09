@@ -5,7 +5,8 @@ const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const EmailLog = require('../models/EmailLog');
-const { sendAppointmentApprovalEmail, sendPaymentSuccessEmail, sendAppointmentReminderEmail } = require('../utils/mailer');
+const CalendarEvent = require('../models/CalendarEvent');
+const { sendAppointmentApprovalEmail, sendPaymentSuccessEmail, sendAppointmentReminderEmail, sendDoctorAppointmentRequestEmail } = require('../utils/mailer');
 const { generateInvoicePdf } = require('../utils/invoicePdf');
 
 const router = express.Router();
@@ -155,7 +156,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// POST /api/user/appointments - Book a new appointment (status = REQUESTED)
+// POST /api/user/appointments - Book a new appointment (status = APPROVED)
 router.post('/', auth, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -168,6 +169,19 @@ router.post('/', auth, async (req, res) => {
       reasonForVisit,
       mode
     } = req.body;
+
+    // Check for existing active appointments (One appointment per account rule)
+    const activeAppointment = await Appointment.findOne({
+      userId,
+      status: { $nin: ['COMPLETED', 'CANCELLED', 'REJECTED', 'completed', 'cancelled', 'rejected'] }
+    });
+
+    if (activeAppointment) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have an active appointment. Please complete or cancel it before booking a new one.'
+      });
+    }
     
     // Validate required fields
     if (!doctorId || !date || !time || !reasonForVisit) {
@@ -188,10 +202,30 @@ router.post('/', auth, async (req, res) => {
     
     // Combine date and time
     const appointmentDate = new Date(`${date}T${time}`);
+
+    // Limit appointments to 5 per doctor per day
+    const startOfDay = new Date(appointmentDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(appointmentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const dailyAppointmentsCount = await Appointment.countDocuments({
+      doctorId: doctor._id,
+      appointmentDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $nin: ['cancelled', 'rejected', 'REJECTED'] }
+    });
+
+    if (dailyAppointmentsCount >= 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Doctor has reached the daily limit of 5 appointments.'
+      });
+    }
     
-    // Create appointment with REQUESTED status
+    // Create appointment with APPROVED status (Auto-approve)
     const appointment = new Appointment({
       userId,
+      doctorId: doctor._id,
       provider: {
         name: `Dr. ${doctor.firstName} ${doctor.lastName}`,
         specialization: doctor.specialization || 'general-physician',
@@ -204,12 +238,76 @@ router.post('/', auth, async (req, res) => {
       appointmentDate,
       duration: duration || 30,
       type: type || 'consultation',
-      status: 'requested', // Initial status
+      status: 'APPROVED', // Auto-approved
       mode: mode || 'in-person',
       reasonForVisit
     });
     
     await appointment.save();
+
+    // Create calendar event
+    try {
+      const appointmentTime = appointment.appointmentDate.toTimeString().slice(0, 5);
+      await CalendarEvent.create({
+        userId: appointment.userId,
+        title: `Doctor Appointment – ${appointment.provider.name}`,
+        type: 'appointment',
+        date: appointment.appointmentDate,
+        time: appointmentTime,
+        description: `${appointment.type} appointment with ${appointment.provider.name}`,
+        color: 'bg-blue-100 text-blue-700 border-blue-200',
+        appointmentDetails: {
+          doctor: appointment.provider.name
+        }
+      });
+    } catch (calendarError) {
+      console.error('Failed to create calendar event:', calendarError);
+    }
+    
+    // Send approval email to USER (non-blocking)
+    try {
+      const user = await User.findById(userId);
+      if (user) {
+        await sendAppointmentApprovalEmail(user.email, user.firstName, {
+          doctorName: appointment.provider.name,
+          date: appointment.appointmentDate.toLocaleDateString(),
+          time: appointment.appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          type: appointment.type
+        });
+        // Log email
+        try {
+          await EmailLog.create({
+            userId,
+            email: user.email,
+            subject: 'Appointment Approved - MediMeal',
+            type: 'appointment_approval',
+            status: 'sent',
+            metadata: { appointmentId: appointment._id }
+          });
+        } catch (logError) {
+          console.error('Failed to log user email:', logError);
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send approval email to user:', emailError);
+    }
+
+    // Send appointment request notification email to DOCTOR (non-blocking)
+    try {
+      if (doctor && doctor.email) {
+        const user = await User.findById(userId);
+        await sendDoctorAppointmentRequestEmail(doctor.email, doctor.firstName, {
+          patientName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Unknown Patient',
+          patientEmail: user?.email || '',
+          date: appointment.appointmentDate.toLocaleDateString(),
+          time: appointment.appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          type: appointment.type,
+          reasonForVisit: appointment.reasonForVisit
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send notification email to doctor:', emailError);
+    }
     
     res.status(201).json({
       success: true,

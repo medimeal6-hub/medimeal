@@ -69,6 +69,19 @@ router.post('/book', auth, async (req, res) => {
     const userId = req.user._id;
     const { doctorId, date, time, type, reasonForVisit, mode } = req.body;
 
+    // Check for existing active appointments (One appointment per account rule)
+    const activeAppointment = await Appointment.findOne({
+      userId,
+      status: { $nin: ['COMPLETED', 'CANCELLED', 'REJECTED', 'completed', 'cancelled', 'rejected'] }
+    });
+
+    if (activeAppointment) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have an active appointment. Please complete or cancel it before booking a new one.'
+      });
+    }
+
     // Validate required fields - doctorId is REQUIRED
     if (!doctorId || !date || !time || !reasonForVisit) {
       return res.status(400).json({
@@ -100,6 +113,25 @@ router.post('/book', auth, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Appointment date and time must be in the future'
+      });
+    }
+
+    // Limit appointments to 5 per doctor per day
+    const startOfDay = new Date(appointmentDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(appointmentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const dailyAppointmentsCount = await Appointment.countDocuments({
+      doctorId: doctor._id,
+      appointmentDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $nin: ['cancelled', 'rejected', 'REJECTED'] }
+    });
+
+    if (dailyAppointmentsCount >= 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Doctor has reached the daily limit of 5 appointments.'
       });
     }
 
@@ -144,13 +176,13 @@ router.post('/book', auth, async (req, res) => {
       }
     }
 
-    // Create appointment with REQUESTED status
+    // Create appointment with APPROVED status (Auto-approve)
     // CRITICAL: doctorId MUST be saved exactly as doctor._id (ObjectId)
     const appointment = new Appointment({
       userId,
       doctorId: doctor._id, // Save doctor._id exactly as ObjectId
       appointmentDate,
-      status: 'REQUESTED', // Initial status - REQUIRED
+      status: 'APPROVED', // Auto-approved
       consultationFee,
       provider: {
         name: `Dr. ${doctor.firstName} ${doctor.lastName}`,
@@ -167,12 +199,31 @@ router.post('/book', auth, async (req, res) => {
     });
 
     await appointment.save();
+
+    // Create calendar event for auto-approved appointment
+    try {
+      const appointmentTime = appointment.appointmentDate.toTimeString().slice(0, 5); // HH:mm format
+      await CalendarEvent.create({
+        userId: appointment.userId,
+        title: `Doctor Appointment – ${appointment.provider.name}`,
+        type: 'appointment',
+        date: appointment.appointmentDate,
+        time: appointmentTime,
+        description: `${appointment.type} appointment with ${appointment.provider.name}`,
+        color: 'bg-blue-100 text-blue-700 border-blue-200',
+        appointmentDetails: {
+          doctor: appointment.provider.name
+        }
+      });
+    } catch (calendarError) {
+      console.error('Failed to create calendar event:', calendarError);
+    }
     
     // ========================================
     // DEBUG LOGGING - Appointment Booking
     // ========================================
     console.log('========================================');
-    console.log('📅 APPOINTMENT BOOKING SUCCESS');
+    console.log('📅 APPOINTMENT BOOKING SUCCESS (AUTO-APPROVED)');
     console.log('========================================');
     console.log(`✅ Appointment ID: ${appointment._id}`);
     console.log(`✅ User ID: ${userId}`);
@@ -182,11 +233,11 @@ router.post('/book', auth, async (req, res) => {
     console.log(`✅ Created At: ${appointment.createdAt}`);
     console.log('========================================');
 
-    // Send booking confirmation email to USER (non-blocking)
+    // Send approval email to USER (non-blocking)
     try {
       const user = await User.findById(userId);
       if (user) {
-        await sendBookingConfirmationEmail(user.email, user.firstName, {
+        await sendAppointmentApprovalEmail(user.email, user.firstName, {
           doctorName: appointment.provider.name,
           date: appointment.appointmentDate.toLocaleDateString(),
           time: appointment.appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -197,8 +248,8 @@ router.post('/book', auth, async (req, res) => {
           await EmailLog.create({
             userId,
             email: user.email,
-            subject: 'Appointment Request Sent - MediMeal',
-            type: 'appointment_booking',
+            subject: 'Appointment Approved - MediMeal',
+            type: 'appointment_approval',
             status: 'sent',
             metadata: { appointmentId: appointment._id }
           });
@@ -207,7 +258,7 @@ router.post('/book', auth, async (req, res) => {
         }
       }
     } catch (emailError) {
-      console.error('Failed to send booking confirmation email to user:', emailError);
+      console.error('Failed to send approval email to user:', emailError);
       // Don't fail the appointment creation if email fails
     }
 
@@ -434,173 +485,8 @@ router.get('/doctor/:doctorId', auth, async (req, res) => {
 });
 
 // ========================================
-// 4. DOCTOR ACTION – APPROVE
-// PATCH /appointments/:appointmentId/approve
+// Obsolete routes (Approve/Reject) removed
 // ========================================
-router.patch('/:appointmentId/approve', auth, authorize('doctor'), async (req, res) => {
-  try {
-    const appointmentId = req.params.appointmentId;
-    const doctorId = req.user._id;
-
-    // Find appointment
-    const appointment = await Appointment.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
-    }
-
-    // Allow ANY doctor to approve any appointment request
-    // Removed doctorId check - all doctors can manage all appointments
-
-    // Status flow validation
-    if (appointment.status !== 'REQUESTED') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot approve appointment with status: ${appointment.status}. Only REQUESTED appointments can be approved.`
-      });
-    }
-
-    // Update status to APPROVED
-    appointment.status = 'APPROVED';
-    await appointment.save();
-
-    // Create calendar event
-    try {
-      const appointmentTime = appointment.appointmentDate.toTimeString().slice(0, 5); // HH:mm format
-      await CalendarEvent.create({
-        userId: appointment.userId,
-        title: `Doctor Appointment – ${appointment.provider.name}`,
-        type: 'appointment',
-        date: appointment.appointmentDate,
-        time: appointmentTime,
-        description: `${appointment.type} appointment with ${appointment.provider.name}`,
-        color: 'bg-blue-100 text-blue-700 border-blue-200',
-        appointmentDetails: {
-          doctor: appointment.provider.name
-        }
-      });
-    } catch (calendarError) {
-      console.error('Failed to create calendar event:', calendarError);
-    }
-
-    // Send approval email
-    try {
-      const user = await User.findById(appointment.userId);
-      await sendAppointmentApprovalEmail(user.email, user.firstName, {
-        doctorName: appointment.provider.name,
-        date: appointment.appointmentDate.toLocaleDateString(),
-        time: appointment.appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        type: appointment.type
-      });
-      await EmailLog.create({
-        userId: appointment.userId,
-        email: user.email,
-        subject: 'Appointment Approved - MediMeal',
-        type: 'appointment_approval',
-        status: 'sent',
-        metadata: { appointmentId: appointment._id }
-      });
-    } catch (emailError) {
-      console.error('Failed to send approval email:', emailError);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Appointment approved successfully',
-      data: appointment
-    });
-  } catch (error) {
-    console.error('Approve appointment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to approve appointment'
-    });
-  }
-});
-
-// ========================================
-// 5. DOCTOR ACTION – REJECT
-// PATCH /appointments/:appointmentId/reject
-// ========================================
-router.patch('/:appointmentId/reject', auth, authorize('doctor'), async (req, res) => {
-  try {
-    const appointmentId = req.params.appointmentId;
-    const doctorId = req.user._id;
-    const { reason } = req.body;
-
-    // Find appointment
-    const appointment = await Appointment.findById(appointmentId);
-    if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
-    }
-
-    // Allow ANY doctor to reject any appointment request
-    // Removed doctorId check - all doctors can manage all appointments
-
-    // Status flow validation
-    if (appointment.status !== 'REQUESTED') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot reject appointment with status: ${appointment.status}. Only REQUESTED appointments can be rejected.`
-      });
-    }
-
-    // Update status to REJECTED
-    appointment.status = 'REJECTED';
-    if (reason) {
-      appointment.cancellationReason = reason;
-      appointment.cancelledBy = 'provider';
-    }
-    await appointment.save();
-
-    // Do NOT create calendar event on rejection
-
-    // Send rejection email
-    try {
-      const user = await User.findById(appointment.userId);
-      if (user) {
-        await sendAppointmentRejectionEmail(user.email, user.firstName, {
-          doctorName: appointment.provider.name,
-          date: appointment.appointmentDate.toLocaleDateString(),
-          time: appointment.appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          type: appointment.type
-        }, reason);
-        // Log email (don't fail if logging fails)
-        try {
-          await EmailLog.create({
-            userId: appointment.userId,
-            email: user.email,
-            subject: 'Appointment Rejected - MediMeal',
-            type: 'appointment_rejection',
-            status: 'sent',
-            metadata: { appointmentId: appointment._id, reason }
-          });
-        } catch (logError) {
-          console.error('Failed to log rejection email:', logError);
-        }
-      }
-    } catch (emailError) {
-      console.error('Failed to send rejection email:', emailError);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Appointment rejected successfully',
-      data: appointment
-    });
-  } catch (error) {
-    console.error('Reject appointment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reject appointment'
-    });
-  }
-});
 
 // ========================================
 // 6. USER SIDE – PAYMENT

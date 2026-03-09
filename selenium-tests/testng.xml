@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="MediMeal Test Suite" parallel="false">
+    <test name="MediMeal Complete Flow Tests">
+        <classes>
+            <class name="com.medimeal.tests.AdminLoginTest"/>
+            <class name="com.medimeal.tests.DoctorLoginTest"/>
+            <class name="com.medimeal.tests.PatientLoginTest"/>
+            <class name="com.medimeal.tests.PatientBookingTest"/>
+        </classes>
+    </test>
+</suite>

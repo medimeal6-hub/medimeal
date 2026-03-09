@@ -91,41 +91,6 @@ const Appointments = () => {
     }
   }
 
-  const handleApprove = async (appointmentId) => {
-    if (!confirm('Are you sure you want to approve this appointment?')) return
-
-    try {
-      setError('')
-      setSuccessMessage('')
-      const response = await axios.patch(`/appointments/${appointmentId}/approve`)
-      if (response.data.success) {
-        setSuccessMessage('Appointment approved successfully!')
-        fetchAppointments() // Refresh the list
-      }
-    } catch (error) {
-      console.error('Error approving appointment:', error)
-      setError(error.response?.data?.message || 'Failed to approve appointment')
-    }
-  }
-
-  const handleReject = async (appointmentId) => {
-    const reason = prompt('Please provide a reason for rejection (optional):')
-    if (reason === null) return // User cancelled
-
-    try {
-      setError('')
-      setSuccessMessage('')
-      const response = await axios.patch(`/appointments/${appointmentId}/reject`, { reason: reason || '' })
-      if (response.data.success) {
-        setSuccessMessage('Appointment rejected successfully!')
-        fetchAppointments() // Refresh the list
-      }
-    } catch (error) {
-      console.error('Error rejecting appointment:', error)
-      setError(error.response?.data?.message || 'Failed to reject appointment')
-    }
-  }
-
   const handleViewDetails = (appointment) => {
     setSelectedAppointment(appointment)
     setShowDetailsModal(true)
@@ -354,24 +319,6 @@ const Appointments = () => {
                     <Eye className="h-4 w-4 mr-2" />
                     View
                   </button>
-                  {(appointment.status?.toUpperCase() === 'REQUESTED' || appointment.status === 'requested') && (
-                    <>
-                      <button
-                        onClick={() => handleApprove(appointment._id)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(appointment._id)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Reject
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
@@ -429,31 +376,6 @@ const Appointments = () => {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p>{selectedAppointment.reasonForVisit}</p>
                     </div>
-                  </div>
-                )}
-                
-                {(selectedAppointment.status?.toUpperCase() === 'REQUESTED' || selectedAppointment.status === 'requested') && (
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={() => {
-                        handleApprove(selectedAppointment._id)
-                        setShowDetailsModal(false)
-                      }}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Approve Appointment
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleReject(selectedAppointment._id)
-                        setShowDetailsModal(false)
-                      }}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Reject Appointment
-                    </button>
                   </div>
                 )}
               </div>

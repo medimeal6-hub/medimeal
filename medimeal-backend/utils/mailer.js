@@ -11,7 +11,7 @@ function getTransporter() {
   const EMAIL_SECURE = process.env.EMAIL_SECURE || 'false'
   const EMAIL_USER = process.env.EMAIL_USER || 'medimeal6@gmail.com'
   const EMAIL_PASS = process.env.EMAIL_PASS || 'dnqn nkxy rqrm hrhc'
-  const EMAIL_FROM = process.env.EMAIL_FROM || 'MediMeal <noreply@medimeal.com>'
+  const EMAIL_FROM = process.env.EMAIL_FROM || `MediMeal <${EMAIL_USER}>`
   
   if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS || !EMAIL_FROM) {
     console.warn('Email disabled: missing email envs (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM)')
@@ -32,8 +32,18 @@ function getTransporter() {
 async function sendMail({ to, subject, html }) {
   const tx = getTransporter()
   if (!tx) return { ok: false, skipped: true }
-  const from = process.env.EMAIL_FROM
-  await tx.sendMail({ from, to, subject, html })
+  const from = process.env.EMAIL_FROM || `MediMeal <${process.env.EMAIL_USER || 'medimeal6@gmail.com'}>`
+  await tx.verify()
+  await tx.sendMail({
+    from,
+    to,
+    subject,
+    html,
+    envelope: {
+      from: process.env.EMAIL_USER || 'medimeal6@gmail.com',
+      to
+    }
+  })
   return { ok: true }
 }
 

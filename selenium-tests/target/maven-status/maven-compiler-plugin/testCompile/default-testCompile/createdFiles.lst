@@ -1,0 +1,4 @@
+com\medimeal\tests\PatientBookingTest.class
+com\medimeal\tests\AdminLoginTest.class
+com\medimeal\tests\DoctorLoginTest.class
+com\medimeal\tests\PatientLoginTest.class

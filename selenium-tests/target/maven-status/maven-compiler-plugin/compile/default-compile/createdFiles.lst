@@ -1,0 +1,5 @@
+com\medimeal\pages\HomePage.class
+com\medimeal\pages\LoginPage.class
+com\medimeal\pages\AppointmentPage.class
+com\medimeal\pages\DashboardPage.class
+com\medimeal\base\BaseTest.class

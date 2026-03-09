@@ -1,4 +1,5 @@
 // Script to create test users for Playwright tests
+require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -6,7 +7,7 @@ const User = require('../models/User');
 async function createTestUsers() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/medimeal');
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
     // Test user credentials

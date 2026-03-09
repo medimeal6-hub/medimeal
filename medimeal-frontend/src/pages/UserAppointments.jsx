@@ -104,7 +104,7 @@ const UserAppointments = () => {
           mode: 'in-person'
         })
         fetchAppointments()
-        alert('Appointment booking requested successfully! You will receive a confirmation email shortly.')
+        alert('Appointment confirmed! Please proceed to payment.')
       }
     } catch (error) {
       console.error('Error booking appointment:', error)

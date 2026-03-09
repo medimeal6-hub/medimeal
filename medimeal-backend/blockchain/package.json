@@ -1,0 +1,36 @@
+{
+  "name": "medimeal-blockchain",
+  "version": "1.0.0",
+  "description": "Blockchain integration for MediMeal healthcare platform",
+  "main": "services/blockchainService.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+    "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "deploy:appointment": "hardhat run scripts/deploy-appointment.js --network mumbai",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "clean": "hardhat clean",
+    "verify": "hardhat verify --network mumbai"
+  },
+  "keywords": [
+    "blockchain",
+    "healthcare",
+    "ethereum",
+    "polygon",
+    "smart-contracts",
+    "ipfs"
+  ],
+  "author": "MediMeal Team",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "ipfs-http-client": "^60.0.1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "hardhat": "^2.19.0"
+  }
+}
